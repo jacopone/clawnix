@@ -27,18 +27,23 @@ export class Agent {
     this.conversations = new ConversationManager(state);
 
     this.eventBus.on("message:incoming", (payload) => {
+      console.log("[agent] Received message:", JSON.stringify(payload));
       this.handleMessage(payload as NixClawMessage).catch((err) => {
         console.error("[agent] Error handling message:", err);
       });
     });
+    console.log("[agent] Agent initialized, listening for messages");
   }
 
   private async handleMessage(msg: NixClawMessage): Promise<void> {
     const conversationId = `${msg.channel}:${msg.sender}`;
+    console.log("[agent] Processing message for conversation:", conversationId);
     this.conversations.addUserMessage(conversationId, msg.text);
     const messages = this.conversations.getMessages(conversationId);
     const tools = this.pluginHost.getTools();
+    console.log("[agent] Calling Claude with", tools.length, "tools,", messages.length, "messages");
     const response = await this.claude.chat(messages, tools, SYSTEM_PROMPT);
+    console.log("[agent] Claude responded:", response.text.substring(0, 100));
     this.conversations.addAssistantMessage(conversationId, response.text);
     this.eventBus.emit("message:response", {
       id: msg.id,
