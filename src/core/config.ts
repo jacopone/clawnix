@@ -25,6 +25,10 @@ export interface NixClawConfig {
       allowConfigEdits?: boolean;
     };
     dev: { enable: boolean };
+    observe: {
+      enable: boolean;
+      allowedReadPaths?: string[];
+    };
   };
   mcp: {
     servers: Record<
@@ -32,6 +36,16 @@ export interface NixClawConfig {
       { command: string; args?: string[]; env?: Record<string, string> }
     >;
   };
+  security: {
+    policies: Array<{
+      tool: string;
+      effect: "allow" | "deny" | "approve";
+      channels?: string[];
+      users?: string[];
+    }>;
+    approvalTimeoutSeconds: number;
+  };
+  workspaceDir: string;
   stateDir: string;
 }
 
@@ -48,8 +62,14 @@ const DEFAULT_CONFIG: NixClawConfig = {
   tools: {
     nixos: { enable: false },
     dev: { enable: false },
+    observe: { enable: true, allowedReadPaths: ["/tmp", "/var/log", "/etc/nixos"] },
   },
   mcp: { servers: {} },
+  security: {
+    policies: [],
+    approvalTimeoutSeconds: 300,
+  },
+  workspaceDir: join(homedir(), ".config/nixclaw"),
   stateDir: join(homedir(), ".local/share/nixclaw"),
 };
 

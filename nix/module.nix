@@ -40,6 +40,10 @@ let
       dev = {
         enable = cfg.tools.dev.enable;
       };
+      observe = {
+        enable = cfg.tools.observe.enable;
+        allowedReadPaths = cfg.tools.observe.allowedReadPaths;
+      };
     };
     mcp = {
       servers = lib.mapAttrs (name: serverCfg: {
@@ -47,6 +51,11 @@ let
         args = serverCfg.args;
         env = serverCfg.env;
       }) cfg.mcp.servers;
+    };
+    workspaceDir = cfg.workspaceDir;
+    security = {
+      policies = cfg.security.policies;
+      approvalTimeoutSeconds = cfg.security.approvalTimeoutSeconds;
     };
     stateDir = cfg.stateDir;
   };
@@ -174,6 +183,55 @@ in
       };
     };
 
+    workspaceDir = lib.mkOption {
+      type = lib.types.path;
+      default = "/var/lib/nixclaw/workspace";
+      description = "Directory containing personality files (IDENTITY.md, SOUL.md, USER.md, HEARTBEAT.md)";
+    };
+
+    tools.observe = {
+      enable = lib.mkEnableOption "observation tools (processes, resources, journal, network, read_file, query)";
+      allowedReadPaths = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "/tmp" "/var/log" "/etc/nixos" ];
+        description = "Paths the read_file tool is allowed to access";
+      };
+    };
+
+    security = {
+      policies = lib.mkOption {
+        type = lib.types.listOf (lib.types.submodule {
+          options = {
+            tool = lib.mkOption {
+              type = lib.types.str;
+              description = "Tool name or '*' for wildcard";
+            };
+            effect = lib.mkOption {
+              type = lib.types.enum [ "allow" "deny" "approve" ];
+              description = "Policy effect";
+            };
+            channels = lib.mkOption {
+              type = lib.types.nullOr (lib.types.listOf lib.types.str);
+              default = null;
+              description = "Channels this policy applies to (null = all)";
+            };
+            users = lib.mkOption {
+              type = lib.types.nullOr (lib.types.listOf lib.types.str);
+              default = null;
+              description = "Users this policy applies to (null = all)";
+            };
+          };
+        });
+        default = [ ];
+        description = "Tool access policies (first match wins)";
+      };
+      approvalTimeoutSeconds = lib.mkOption {
+        type = lib.types.int;
+        default = 300;
+        description = "Seconds before pending approval requests expire";
+      };
+    };
+
     stateDir = lib.mkOption {
       type = lib.types.path;
       default = "/var/lib/nixclaw";
@@ -196,7 +254,7 @@ in
         StateDirectory = "nixclaw";
         ProtectSystem = "strict";
         ProtectHome = "read-only";
-        ReadWritePaths = [ cfg.stateDir ] ++ lib.optional cfg.tools.nixos.enable cfg.tools.nixos.flakePath;
+        ReadWritePaths = [ cfg.stateDir cfg.workspaceDir ] ++ lib.optional cfg.tools.nixos.enable cfg.tools.nixos.flakePath;
         NoNewPrivileges = true;
         PrivateTmp = true;
         RestartSec = 10;

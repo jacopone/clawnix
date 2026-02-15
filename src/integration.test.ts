@@ -28,6 +28,7 @@ describe("NixClaw Integration", () => {
       voice: { stt: { provider: "claude" }, tts: { provider: "none" } },
       tools: { nixos: { enable: false }, dev: { enable: false } },
       mcp: { servers: {} },
+      workspaceDir: "/tmp/nixclaw-integration-workspace",
       stateDir: "/tmp/nixclaw-integration-state",
     };
   });

@@ -26,6 +26,7 @@ describe("Agent", () => {
       voice: { stt: { provider: "claude" }, tts: { provider: "none" } },
       tools: { nixos: { enable: false }, dev: { enable: false } },
       mcp: { servers: {} },
+      workspaceDir: "/tmp/nixclaw-agent-test-workspace",
       stateDir: "/tmp/nixclaw-agent-test-state",
     };
   });

@@ -1,20 +1,19 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { ClaudeClient, type AgentResponse } from "../ai/claude.js";
 import { ConversationManager } from "../ai/context.js";
+import { loadPersonality } from "./personality.js";
 import type { EventBus } from "./event-bus.js";
 import type { StateStore } from "./state.js";
 import type { PluginHost } from "./plugin-host.js";
 import type { NixClawConfig } from "./config.js";
 import type { NixClawMessage } from "./types.js";
 
-const SYSTEM_PROMPT = `You are NixClaw, a personal AI agent running on a NixOS system.
-You help your user manage their NixOS system, development workflows, and daily tasks.
-Be concise and direct. When using tools, explain what you're doing briefly.
-If a task requires system changes (like nixos-rebuild), propose the change and ask the user to execute it.`;
-
 export class Agent {
   private claude: ClaudeClient;
   private conversations: ConversationManager;
+  private systemPrompt: string;
 
   constructor(
     private config: NixClawConfig,
@@ -22,6 +21,7 @@ export class Agent {
     private state: StateStore,
     private pluginHost: PluginHost,
   ) {
+    this.systemPrompt = loadPersonality(config.workspaceDir ?? join(homedir(), ".config/nixclaw"));
     const apiKey = readFileSync(config.ai.apiKeyFile, "utf-8").trim();
     this.claude = new ClaudeClient(apiKey, config.ai.model);
     this.conversations = new ConversationManager(state);
@@ -40,9 +40,9 @@ export class Agent {
     console.log("[agent] Processing message for conversation:", conversationId);
     this.conversations.addUserMessage(conversationId, msg.text);
     const messages = this.conversations.getMessages(conversationId);
-    const tools = this.pluginHost.getTools();
+    const tools = this.pluginHost.getToolsForContext(msg.channel, msg.sender);
     console.log("[agent] Calling Claude with", tools.length, "tools,", messages.length, "messages");
-    const response = await this.claude.chat(messages, tools, SYSTEM_PROMPT);
+    const response = await this.claude.chat(messages, tools, this.systemPrompt);
     console.log("[agent] Claude responded:", response.text.substring(0, 100));
     this.conversations.addAssistantMessage(conversationId, response.text);
     this.eventBus.emit("message:response", {

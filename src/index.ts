@@ -10,6 +10,9 @@ import { WebUIChannel } from "./channels/webui/index.js";
 import { McpClientManager } from "./core/mcp-client.js";
 import { DevToolsPlugin } from "./tools/dev/index.js";
 import { SchedulerPlugin } from "./tools/scheduler/index.js";
+import { ObservePlugin } from "./tools/observe/index.js";
+import { HeartbeatPlugin } from "./tools/heartbeat/index.js";
+import { ApprovalStore } from "./core/approval.js";
 import { mkdirSync } from "node:fs";
 
 async function main() {
@@ -43,6 +46,25 @@ async function main() {
 
   await pluginHost.register(new SchedulerPlugin(), {});
 
+  // Phase 2: Observation tools (processes, resources, journal, network, read_file, query)
+  if (config.tools.observe.enable) {
+    await pluginHost.register(new ObservePlugin(), config.tools.observe as unknown as Record<string, unknown>);
+  }
+
+  // Phase 2: Heartbeat service (reads HEARTBEAT.md periodically)
+  await pluginHost.register(new HeartbeatPlugin(), { workspaceDir: config.workspaceDir });
+
+  // Phase 2: Tool policies
+  if (config.security.policies.length > 0) {
+    pluginHost.setPolicies(config.security.policies);
+  }
+
+  // Expire stale approval requests every 60 seconds
+  const approvalStore = new ApprovalStore(state);
+  const approvalCleanupInterval = setInterval(() => {
+    approvalStore.expireOlderThan(config.security.approvalTimeoutSeconds * 1000);
+  }, 60_000);
+
   // Connect to external MCP servers
   const mcpManager = new McpClientManager(config.mcp?.servers ?? {});
   await mcpManager.connectAll();
@@ -57,6 +79,7 @@ async function main() {
 
   const shutdown = async () => {
     console.log("\nShutting down...");
+    clearInterval(approvalCleanupInterval);
     await pluginHost.shutdownAll();
     await mcpManager.disconnectAll();
     state.close();
