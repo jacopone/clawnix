@@ -3,11 +3,16 @@ import type { Tool } from "../core/types.js";
 import { z } from "zod";
 
 export function formatToolsForAPI(tools: Tool[]): Anthropic.Tool[] {
-  return tools.map((t) => ({
-    name: t.name,
-    description: t.description,
-    input_schema: z.toJSONSchema(t.inputSchema) as Anthropic.Tool.InputSchema,
-  }));
+  return tools.map((t) => {
+    const schema = t.rawInputSchema
+      ? { type: "object" as const, ...t.rawInputSchema }
+      : z.toJSONSchema(t.inputSchema);
+    return {
+      name: t.name,
+      description: t.description,
+      input_schema: schema as Anthropic.Tool.InputSchema,
+    };
+  });
 }
 
 export interface AgentResponse {

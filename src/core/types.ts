@@ -17,6 +17,7 @@ export interface Tool {
   name: string;
   description: string;
   inputSchema: z.ZodType;
+  rawInputSchema?: Record<string, unknown>;
   run: (input: unknown) => Promise<string>;
 }
 

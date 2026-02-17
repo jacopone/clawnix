@@ -48,6 +48,7 @@ export class McpClientManager {
             name: `${server.name}_${mcpTool.name}`,
             description: mcpTool.description ?? mcpTool.name,
             inputSchema: z.any(),
+            rawInputSchema: (mcpTool.inputSchema ?? { type: "object" }) as Record<string, unknown>,
             run: async (input) => {
               const result = await server.client.callTool({
                 name: mcpTool.name,
