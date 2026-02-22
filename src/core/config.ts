@@ -1,6 +1,24 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
 
+export interface AgentInstanceConfig {
+  description: string;
+  ai: { provider: "claude"; model: string; apiKeyFile: string };
+  tools: string[];
+  mcp: { servers: string[] };
+  workspaceDir: string;
+  toolPolicies: Array<{
+    tool: string;
+    effect: "allow" | "deny" | "approve";
+    channels?: string[];
+    users?: string[];
+  }>;
+  channels?: {
+    telegram?: { enable: boolean; botTokenFile?: string; allowedUsers?: string[] };
+    webui?: { enable: boolean; port?: number; host?: string };
+  };
+}
+
 export interface ClawNixConfig {
   ai: { provider: "claude"; model: string; apiKeyFile: string };
   channels: {
@@ -47,6 +65,7 @@ export interface ClawNixConfig {
   };
   workspaceDir: string;
   stateDir: string;
+  agents?: Record<string, AgentInstanceConfig>;
 }
 
 const DEFAULT_CONFIG: ClawNixConfig = {

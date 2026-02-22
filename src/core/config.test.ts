@@ -15,6 +15,34 @@ describe("Config", () => {
     expect(cfg.ai.apiKeyFile).toBe("/tmp/key");
   });
 
+  it("loads multi-agent configuration", () => {
+    const multiConfig = {
+      agents: {
+        personal: {
+          description: "daily assistant",
+          ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/tmp/key" },
+          tools: ["nixos", "observe", "dev"],
+          mcp: { servers: ["browser", "documents"] },
+          workspaceDir: "/var/lib/clawnix/personal",
+          toolPolicies: [],
+        },
+        devops: {
+          description: "infrastructure monitoring",
+          ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/tmp/key" },
+          tools: ["nixos", "observe"],
+          mcp: { servers: ["browser"] },
+          workspaceDir: "/var/lib/clawnix/devops",
+          toolPolicies: [],
+        },
+      },
+    };
+    process.env.CLAWNIX_CONFIG = JSON.stringify(multiConfig);
+    const config = loadConfig();
+    expect(config.agents).toBeDefined();
+    expect(config.agents!.personal.description).toBe("daily assistant");
+    expect(config.agents!.devops.tools).toEqual(["nixos", "observe"]);
+  });
+
   it("falls back to defaults when env var is not set", () => {
     const cfg = loadConfig();
     expect(cfg.ai.provider).toBe("claude");
