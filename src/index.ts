@@ -1,4 +1,5 @@
 import { loadConfig } from "./core/config.js";
+import type { AgentInstanceConfig } from "./core/config.js";
 import { EventBus } from "./core/event-bus.js";
 import { StateStore } from "./core/state.js";
 import { PluginHost } from "./core/plugin-host.js";
@@ -13,12 +14,78 @@ import { SchedulerPlugin } from "./tools/scheduler/index.js";
 import { ObservePlugin } from "./tools/observe/index.js";
 import { HeartbeatPlugin } from "./tools/heartbeat/index.js";
 import { ApprovalStore } from "./core/approval.js";
+import { Router } from "./core/router.js";
+import type { AgentRoute } from "./core/router.js";
+import { createAgentInstance } from "./core/agent-instance.js";
+import type { AgentInstance } from "./core/agent-instance.js";
 import { mkdirSync } from "node:fs";
 
-async function main() {
-  console.log("ClawNix v0.2.0 — starting...\n");
+export function buildAgentRoutes(
+  agents: Record<string, AgentInstanceConfig>,
+): Record<string, AgentRoute> {
+  const routes: Record<string, AgentRoute> = {};
+  const usedPrefixes = new Set<string>();
 
-  const config = loadConfig();
+  for (const [name, config] of Object.entries(agents)) {
+    let prefix = name[0].toLowerCase();
+    if (usedPrefixes.has(prefix)) {
+      for (let i = 1; i < name.length; i++) {
+        if (!usedPrefixes.has(name[i].toLowerCase())) {
+          prefix = name[i].toLowerCase();
+          break;
+        }
+      }
+    }
+    usedPrefixes.add(prefix);
+    routes[name] = { description: config.description, prefix };
+  }
+
+  return routes;
+}
+
+async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
+  console.log("ClawNix v0.2.0 — starting in multi-agent mode...\n");
+
+  mkdirSync(config.stateDir, { recursive: true });
+
+  const agents = config.agents!;
+  const routes = buildAgentRoutes(agents);
+  const router = new Router(routes);
+
+  const instances: AgentInstance[] = [];
+
+  for (const [name, agentConfig] of Object.entries(agents)) {
+    const instance = await createAgentInstance(name, agentConfig, {
+      stateDir: config.stateDir,
+    });
+    instances.push(instance);
+    console.log(`  agent "${name}" (/${routes[name].prefix}) — ${agentConfig.description}`);
+  }
+
+  console.log(`\n${instances.length} agent(s) started. Router active.\n`);
+
+  // Shared Telegram channel dispatches via router to correct agent event bus
+  if (config.channels.telegram.enable) {
+    console.log("Telegram channel enabled — messages will be routed to agents via prefix/classification");
+  }
+
+  const shutdown = async () => {
+    console.log("\nShutting down all agents...");
+    for (const instance of instances) {
+      await instance.shutdown();
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+
+  // Keep references for future wiring
+  return { router, instances };
+}
+
+async function startSingleAgent(config: ReturnType<typeof loadConfig>) {
+  console.log("ClawNix v0.2.0 — starting...\n");
 
   mkdirSync(config.stateDir, { recursive: true });
 
@@ -46,26 +113,21 @@ async function main() {
 
   await pluginHost.register(new SchedulerPlugin(), {});
 
-  // Phase 2: Observation tools (processes, resources, journal, network, read_file, query)
   if (config.tools.observe.enable) {
     await pluginHost.register(new ObservePlugin(), config.tools.observe as unknown as Record<string, unknown>);
   }
 
-  // Phase 2: Heartbeat service (reads HEARTBEAT.md periodically)
   await pluginHost.register(new HeartbeatPlugin(), { workspaceDir: config.workspaceDir });
 
-  // Phase 2: Tool policies
   if (config.security.policies.length > 0) {
     pluginHost.setPolicies(config.security.policies);
   }
 
-  // Expire stale approval requests every 60 seconds
   const approvalStore = new ApprovalStore(state);
   const approvalCleanupInterval = setInterval(() => {
     approvalStore.expireOlderThan(config.security.approvalTimeoutSeconds * 1000);
   }, 60_000);
 
-  // Connect to external MCP servers
   const mcpManager = new McpClientManager(config.mcp?.servers ?? {});
   await mcpManager.connectAll();
   const mcpTools = await mcpManager.getAllTools();
@@ -90,7 +152,23 @@ async function main() {
   process.on("SIGTERM", shutdown);
 }
 
-main().catch((err) => {
-  console.error("Fatal:", err);
-  process.exit(1);
-});
+async function main() {
+  const config = loadConfig();
+
+  if (config.agents && Object.keys(config.agents).length > 0) {
+    await startMultiAgent(config);
+  } else {
+    await startSingleAgent(config);
+  }
+}
+
+const isDirectRun =
+  process.argv[1] &&
+  import.meta.url.endsWith(process.argv[1].replace(/.*\//, ""));
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error("Fatal:", err);
+    process.exit(1);
+  });
+}
