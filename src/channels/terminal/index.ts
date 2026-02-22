@@ -1,9 +1,9 @@
 import { createInterface, type Interface } from "node:readline";
 import { randomUUID } from "node:crypto";
-import type { NixClawPlugin, PluginContext, NixClawMessage } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext, ClawNixMessage } from "../../core/types.js";
 import type { EventBus } from "../../core/event-bus.js";
 
-export class TerminalChannel implements NixClawPlugin {
+export class TerminalChannel implements ClawNixPlugin {
   name = "terminal";
   version = "0.1.0";
   private rl?: Interface;
@@ -16,14 +16,14 @@ export class TerminalChannel implements NixClawPlugin {
       const response = payload as { channel: string; text: string };
       if (response.channel === "terminal") {
         console.log(`\n${response.text}\n`);
-        process.stdout.write("nixclaw> ");
+        process.stdout.write("clawnix> ");
       }
     });
 
     this.rl = createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: "nixclaw> ",
+      prompt: "clawnix> ",
     });
 
     this.rl.on("line", (line) => {
@@ -41,7 +41,7 @@ export class TerminalChannel implements NixClawPlugin {
   }
 
   processLine(text: string, eventBus: EventBus): void {
-    const msg: NixClawMessage = {
+    const msg: ClawNixMessage = {
       id: randomUUID(),
       channel: "terminal",
       sender: "local",

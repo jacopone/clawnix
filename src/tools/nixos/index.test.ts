@@ -5,10 +5,10 @@ import { StateStore } from "../../core/state.js";
 import type { PluginContext, Tool } from "../../core/types.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-nixos-tools-test.db";
+const TEST_DB = "/tmp/clawnix-nixos-tools-test.db";
 
 describe("NixOSToolsPlugin", () => {
-  it("implements NixClawPlugin interface", () => {
+  it("implements ClawNixPlugin interface", () => {
     const plugin = new NixOSToolsPlugin();
     expect(plugin.name).toBe("nixos-tools");
     expect(plugin.version).toBeDefined();
@@ -34,10 +34,10 @@ describe("NixOSToolsPlugin", () => {
 
     expect(tools.length).toBeGreaterThanOrEqual(4);
     const names = tools.map((t) => t.name);
-    expect(names).toContain("nixclaw_system_status");
-    expect(names).toContain("nixclaw_flake_check");
-    expect(names).toContain("nixclaw_service_status");
-    expect(names).toContain("nixclaw_list_services");
+    expect(names).toContain("clawnix_system_status");
+    expect(names).toContain("clawnix_flake_check");
+    expect(names).toContain("clawnix_service_status");
+    expect(names).toContain("clawnix_list_services");
 
     state.close();
     try {

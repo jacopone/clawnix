@@ -4,7 +4,7 @@ import type { PluginContext } from "../../core/types.js";
 import { EventBus } from "../../core/event-bus.js";
 
 describe("TerminalChannel", () => {
-  it("implements NixClawPlugin interface", () => {
+  it("implements ClawNixPlugin interface", () => {
     const channel = new TerminalChannel();
     expect(channel.name).toBe("terminal");
     expect(channel.version).toBeDefined();

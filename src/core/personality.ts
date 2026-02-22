@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-const DEFAULT_PROMPT = `You are NixClaw, a personal AI agent running on a NixOS system.
+const DEFAULT_PROMPT = `You are ClawNix, a personal AI agent running on a NixOS system.
 You help your user manage their NixOS system, development workflows, and daily tasks.
 Be concise and direct. When using tools, explain what you're doing briefly.
 If a task requires system changes (like nixos-rebuild), propose the change and ask the user to execute it.`;

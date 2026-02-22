@@ -16,14 +16,14 @@ import { ApprovalStore } from "./core/approval.js";
 import { mkdirSync } from "node:fs";
 
 async function main() {
-  console.log("NixClaw v0.1.0 — starting...\n");
+  console.log("ClawNix v0.2.0 — starting...\n");
 
   const config = loadConfig();
 
   mkdirSync(config.stateDir, { recursive: true });
 
   const eventBus = new EventBus();
-  const state = new StateStore(`${config.stateDir}/nixclaw.db`);
+  const state = new StateStore(`${config.stateDir}/clawnix.db`);
   const pluginHost = new PluginHost(eventBus, state);
 
   await pluginHost.register(new TerminalChannel(), {});

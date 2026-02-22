@@ -28,7 +28,7 @@ export class McpClientManager {
           args: config.args ?? [],
           env: { ...process.env, ...config.env } as Record<string, string>,
         });
-        const client = new Client({ name: `nixclaw-${name}`, version: "0.1.0" });
+        const client = new Client({ name: `clawnix-${name}`, version: "0.2.0" });
         await client.connect(transport);
         this.servers.push({ name, client, transport });
         console.log(`[mcp] Connected to ${name}`);

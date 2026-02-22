@@ -3,7 +3,7 @@ import { ConversationManager } from "./context.js";
 import { StateStore } from "../core/state.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-context-test.db";
+const TEST_DB = "/tmp/clawnix-context-test.db";
 
 describe("ConversationManager", () => {
   let state: StateStore;

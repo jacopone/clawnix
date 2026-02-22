@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { existsSync, unlinkSync } from "node:fs";
 import { StateStore } from "./state.js";
 
-const DB_PATH = "/tmp/nixclaw-test.db";
+const DB_PATH = "/tmp/clawnix-test.db";
 
 function cleanup() {
   for (const suffix of ["", "-wal", "-shm"]) {

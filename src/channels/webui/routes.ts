@@ -3,7 +3,7 @@ import type { EventBus } from "../../core/event-bus.js";
 import type { StateStore } from "../../core/state.js";
 import { ApprovalStore } from "../../core/approval.js";
 import { randomUUID } from "node:crypto";
-import type { NixClawMessage } from "../../core/types.js";
+import type { ClawNixMessage } from "../../core/types.js";
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -15,7 +15,7 @@ export function registerRoutes(
   app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
   app.post<{ Body: { text: string } }>("/api/chat", async (req) => {
-    const msg: NixClawMessage = {
+    const msg: ClawNixMessage = {
       id: randomUUID(),
       channel: "webui",
       sender: "webui-user",
@@ -81,7 +81,7 @@ export function registerRoutes(
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html>
 <head>
-  <title>NixClaw</title>
+  <title>ClawNix</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
@@ -99,7 +99,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <div id="header"><h1>NixClaw</h1></div>
+  <div id="header"><h1>ClawNix</h1></div>
   <div id="messages"></div>
   <div id="input-area">
     <input id="input" placeholder="Type a message..." autofocus>

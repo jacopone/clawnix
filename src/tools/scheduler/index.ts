@@ -1,7 +1,7 @@
 import { CronJob } from "cron";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import type { NixClawPlugin, PluginContext, NixClawMessage } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext, ClawNixMessage } from "../../core/types.js";
 
 interface ScheduledTask {
   id: string;
@@ -11,7 +11,7 @@ interface ScheduledTask {
   job: CronJob;
 }
 
-export class SchedulerPlugin implements NixClawPlugin {
+export class SchedulerPlugin implements ClawNixPlugin {
   name = "scheduler";
   version = "0.1.0";
   private tasks: ScheduledTask[] = [];
@@ -20,7 +20,7 @@ export class SchedulerPlugin implements NixClawPlugin {
     const { eventBus, logger } = ctx;
 
     ctx.registerTool({
-      name: "nixclaw_schedule_task",
+      name: "clawnix_schedule_task",
       description:
         "Schedule a recurring task using a cron expression. The message will be sent to the agent on each trigger.",
       inputSchema: z.object({
@@ -47,7 +47,7 @@ export class SchedulerPlugin implements NixClawPlugin {
         const targetChannel = channel ?? "scheduler";
 
         const job = new CronJob(cronExpression, () => {
-          const msg: NixClawMessage = {
+          const msg: ClawNixMessage = {
             id: randomUUID(),
             channel: targetChannel,
             sender: "scheduler",
@@ -71,7 +71,7 @@ export class SchedulerPlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_list_scheduled",
+      name: "clawnix_list_scheduled",
       description: "List all currently scheduled tasks",
       inputSchema: z.object({}),
       run: async () => {

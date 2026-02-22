@@ -1,5 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
-import type { NixClawPlugin, PluginContext } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext } from "../../core/types.js";
 import { registerRoutes } from "./routes.js";
 
 interface WebUIConfig {
@@ -7,7 +7,7 @@ interface WebUIConfig {
   host?: string;
 }
 
-export class WebUIChannel implements NixClawPlugin {
+export class WebUIChannel implements ClawNixPlugin {
   name = "webui";
   version = "0.1.0";
   private app?: FastifyInstance;

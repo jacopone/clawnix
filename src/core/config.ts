@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-export interface NixClawConfig {
+export interface ClawNixConfig {
   ai: { provider: "claude"; model: string; apiKeyFile: string };
   channels: {
     telegram: {
@@ -49,7 +49,7 @@ export interface NixClawConfig {
   stateDir: string;
 }
 
-const DEFAULT_CONFIG: NixClawConfig = {
+const DEFAULT_CONFIG: ClawNixConfig = {
   ai: { provider: "claude", model: "claude-sonnet-4-5-20250929", apiKeyFile: "" },
   channels: {
     telegram: { enable: false },
@@ -69,12 +69,12 @@ const DEFAULT_CONFIG: NixClawConfig = {
     policies: [],
     approvalTimeoutSeconds: 300,
   },
-  workspaceDir: join(homedir(), ".config/nixclaw"),
-  stateDir: join(homedir(), ".local/share/nixclaw"),
+  workspaceDir: join(homedir(), ".config/clawnix"),
+  stateDir: join(homedir(), ".local/share/clawnix"),
 };
 
-export function loadConfig(): NixClawConfig {
-  const envConfig = process.env.NIXCLAW_CONFIG;
+export function loadConfig(): ClawNixConfig {
+  const envConfig = process.env.CLAWNIX_CONFIG;
   if (envConfig) return { ...DEFAULT_CONFIG, ...JSON.parse(envConfig) };
   return DEFAULT_CONFIG;
 }

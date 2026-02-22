@@ -3,11 +3,11 @@ import { loadConfig } from "./config.js";
 
 describe("Config", () => {
   afterEach(() => {
-    delete process.env.NIXCLAW_CONFIG;
+    delete process.env.CLAWNIX_CONFIG;
   });
 
-  it("loads config from NIXCLAW_CONFIG env var", () => {
-    process.env.NIXCLAW_CONFIG = JSON.stringify({
+  it("loads config from CLAWNIX_CONFIG env var", () => {
+    process.env.CLAWNIX_CONFIG = JSON.stringify({
       ai: { provider: "claude", model: "claude-opus-4-20250514", apiKeyFile: "/tmp/key" },
     });
     const cfg = loadConfig();
@@ -21,6 +21,6 @@ describe("Config", () => {
     expect(cfg.ai.model).toBe("claude-sonnet-4-5-20250929");
     expect(cfg.channels.telegram.enable).toBe(false);
     expect(cfg.channels.webui.port).toBe(3333);
-    expect(cfg.stateDir).toContain(".local/share/nixclaw");
+    expect(cfg.stateDir).toContain(".local/share/clawnix");
   });
 });

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { HeartbeatPlugin } from "./index.js";
 import { EventBus } from "../../core/event-bus.js";
 import { StateStore } from "../../core/state.js";
-import type { PluginContext, NixClawMessage } from "../../core/types.js";
+import type { PluginContext, ClawNixMessage } from "../../core/types.js";
 import { mkdirSync, writeFileSync, rmSync, unlinkSync } from "node:fs";
 
-const TEST_DIR = "/tmp/nixclaw-heartbeat-test";
-const TEST_DB = "/tmp/nixclaw-heartbeat-test.db";
+const TEST_DIR = "/tmp/clawnix-heartbeat-test";
+const TEST_DB = "/tmp/clawnix-heartbeat-test.db";
 
 describe("HeartbeatPlugin", () => {
   afterEach(() => {
@@ -36,7 +36,7 @@ describe("HeartbeatPlugin", () => {
     plugin.tick();
 
     expect(messages).toHaveLength(1);
-    const msg = messages[0] as NixClawMessage;
+    const msg = messages[0] as ClawNixMessage;
     expect(msg.channel).toBe("heartbeat");
     expect(msg.text).toContain("Check system status");
 

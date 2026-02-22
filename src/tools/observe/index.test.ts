@@ -5,7 +5,7 @@ import { StateStore } from "../../core/state.js";
 import type { PluginContext, Tool } from "../../core/types.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-observe-test.db";
+const TEST_DB = "/tmp/clawnix-observe-test.db";
 
 describe("ObservePlugin", () => {
   let state: StateStore;
@@ -32,15 +32,15 @@ describe("ObservePlugin", () => {
     await plugin.init(ctx);
 
     const names = tools.map((t) => t.name);
-    expect(names).toContain("nixclaw_processes");
-    expect(names).toContain("nixclaw_resources");
-    expect(names).toContain("nixclaw_journal");
-    expect(names).toContain("nixclaw_network");
-    expect(names).toContain("nixclaw_read_file");
-    expect(names).toContain("nixclaw_query");
+    expect(names).toContain("clawnix_processes");
+    expect(names).toContain("clawnix_resources");
+    expect(names).toContain("clawnix_journal");
+    expect(names).toContain("clawnix_network");
+    expect(names).toContain("clawnix_read_file");
+    expect(names).toContain("clawnix_query");
   });
 
-  it("nixclaw_processes returns process info", async () => {
+  it("clawnix_processes returns process info", async () => {
     const plugin = new ObservePlugin();
     const bus = new EventBus();
     state = new StateStore(TEST_DB);
@@ -55,7 +55,7 @@ describe("ObservePlugin", () => {
     };
 
     await plugin.init(ctx);
-    const processTool = tools.find((t) => t.name === "nixclaw_processes")!;
+    const processTool = tools.find((t) => t.name === "clawnix_processes")!;
     const result = await processTool.run({ query: "node" });
     expect(typeof result).toBe("string");
   });

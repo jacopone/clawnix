@@ -5,10 +5,10 @@ import { StateStore } from "../../core/state.js";
 import type { PluginContext, Tool } from "../../core/types.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-dev-tools-test.db";
+const TEST_DB = "/tmp/clawnix-dev-tools-test.db";
 
 describe("DevToolsPlugin", () => {
-  it("implements NixClawPlugin interface", () => {
+  it("implements ClawNixPlugin interface", () => {
     const plugin = new DevToolsPlugin();
     expect(plugin.name).toBe("dev-tools");
   });
@@ -31,9 +31,9 @@ describe("DevToolsPlugin", () => {
 
     expect(tools.length).toBeGreaterThanOrEqual(3);
     const names = tools.map((t) => t.name);
-    expect(names).toContain("nixclaw_git_status");
-    expect(names).toContain("nixclaw_run_tests");
-    expect(names).toContain("nixclaw_claude_sessions");
+    expect(names).toContain("clawnix_git_status");
+    expect(names).toContain("clawnix_run_tests");
+    expect(names).toContain("clawnix_claude_sessions");
 
     state.close();
     try { unlinkSync(TEST_DB); } catch {}

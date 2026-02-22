@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadPersonality } from "./personality.js";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 
-const TEST_DIR = "/tmp/nixclaw-personality-test";
+const TEST_DIR = "/tmp/clawnix-personality-test";
 
 describe("loadPersonality", () => {
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe("loadPersonality", () => {
 
   it("returns default prompt when no files exist", () => {
     const prompt = loadPersonality(TEST_DIR);
-    expect(prompt).toContain("NixClaw");
+    expect(prompt).toContain("ClawNix");
     expect(prompt.length).toBeGreaterThan(50);
   });
 

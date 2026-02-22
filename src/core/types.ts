@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { EventBus } from "./event-bus.js";
 import type { StateStore } from "./state.js";
 
-export interface NixClawMessage {
+export interface ClawNixMessage {
   id: string;
   channel: string;
   sender: string;
@@ -29,7 +29,7 @@ export interface PluginContext {
   logger: Logger;
 }
 
-export interface NixClawPlugin {
+export interface ClawNixPlugin {
   name: string;
   version: string;
   init(ctx: PluginContext): Promise<void>;

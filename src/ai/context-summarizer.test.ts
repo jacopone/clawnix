@@ -3,7 +3,7 @@ import { ConversationManager } from "./context.js";
 import { StateStore } from "../core/state.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-summarizer-test.db";
+const TEST_DB = "/tmp/clawnix-summarizer-test.db";
 
 describe("ConversationManager summarization", () => {
   let state: StateStore;

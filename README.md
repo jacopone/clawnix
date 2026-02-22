@@ -1,4 +1,4 @@
-# nixclaw
+# clawnix
 
 MCP-native personal AI agent platform for NixOS.
 

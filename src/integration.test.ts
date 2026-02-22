@@ -3,19 +3,19 @@ import { EventBus } from "./core/event-bus.js";
 import { StateStore } from "./core/state.js";
 import { PluginHost } from "./core/plugin-host.js";
 import { Agent } from "./core/agent.js";
-import type { NixClawConfig } from "./core/config.js";
-import type { NixClawMessage } from "./core/types.js";
+import type { ClawNixConfig } from "./core/config.js";
+import type { ClawNixMessage } from "./core/types.js";
 import { writeFileSync, unlinkSync } from "node:fs";
 import { z } from "zod";
 
-const TEST_DB = "/tmp/nixclaw-integration-test.db";
-const FAKE_KEY_FILE = "/tmp/nixclaw-integration-apikey";
+const TEST_DB = "/tmp/clawnix-integration-test.db";
+const FAKE_KEY_FILE = "/tmp/clawnix-integration-apikey";
 
-describe("NixClaw Integration", () => {
+describe("ClawNix Integration", () => {
   let bus: EventBus;
   let state: StateStore;
   let host: PluginHost;
-  let config: NixClawConfig;
+  let config: ClawNixConfig;
 
   beforeEach(() => {
     bus = new EventBus();
@@ -28,8 +28,8 @@ describe("NixClaw Integration", () => {
       voice: { stt: { provider: "claude" }, tts: { provider: "none" } },
       tools: { nixos: { enable: false }, dev: { enable: false } },
       mcp: { servers: {} },
-      workspaceDir: "/tmp/nixclaw-integration-workspace",
-      stateDir: "/tmp/nixclaw-integration-state",
+      workspaceDir: "/tmp/clawnix-integration-workspace",
+      stateDir: "/tmp/clawnix-integration-state",
     };
   });
 
@@ -67,11 +67,11 @@ describe("NixClaw Integration", () => {
     bus.on("message:response", (payload) => responses.push(payload));
 
     // Emit a message
-    const testMsg: NixClawMessage = {
+    const testMsg: ClawNixMessage = {
       id: "integration-test-1",
       channel: "terminal",
       sender: "test-user",
-      text: "Hello NixClaw",
+      text: "Hello ClawNix",
       timestamp: new Date(),
     };
     bus.emit("message:incoming", testMsg);

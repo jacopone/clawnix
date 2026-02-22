@@ -5,10 +5,10 @@ import { StateStore } from "../../core/state.js";
 import type { PluginContext, Tool } from "../../core/types.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-scheduler-test.db";
+const TEST_DB = "/tmp/clawnix-scheduler-test.db";
 
 describe("SchedulerPlugin", () => {
-  it("implements NixClawPlugin interface", () => {
+  it("implements ClawNixPlugin interface", () => {
     const plugin = new SchedulerPlugin();
     expect(plugin.name).toBe("scheduler");
   });
@@ -31,7 +31,7 @@ describe("SchedulerPlugin", () => {
 
     expect(tools.length).toBeGreaterThanOrEqual(1);
     const names = tools.map((t) => t.name);
-    expect(names).toContain("nixclaw_schedule_task");
+    expect(names).toContain("clawnix_schedule_task");
 
     await plugin.shutdown();
     state.close();

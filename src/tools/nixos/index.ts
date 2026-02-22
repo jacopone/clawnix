@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { NixClawPlugin, PluginContext } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext } from "../../core/types.js";
 import {
   getSystemStatus,
   flakeCheck,
@@ -13,7 +13,7 @@ interface NixOSToolsConfig {
   flakePath?: string;
 }
 
-export class NixOSToolsPlugin implements NixClawPlugin {
+export class NixOSToolsPlugin implements ClawNixPlugin {
   name = "nixos-tools";
   version = "0.1.0";
 
@@ -22,7 +22,7 @@ export class NixOSToolsPlugin implements NixClawPlugin {
     const flakePath = config.flakePath ?? ".";
 
     ctx.registerTool({
-      name: "nixclaw_system_status",
+      name: "clawnix_system_status",
       description:
         "Get NixOS system status: hostname, uptime, current generation",
       inputSchema: z.object({}),
@@ -30,7 +30,7 @@ export class NixOSToolsPlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_flake_check",
+      name: "clawnix_flake_check",
       description:
         "Run 'nix flake check' on the NixOS configuration to validate it",
       inputSchema: z.object({}),
@@ -38,13 +38,13 @@ export class NixOSToolsPlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_service_status",
+      name: "clawnix_service_status",
       description: "Get the status of a systemd service",
       inputSchema: z.object({
         service: z
           .string()
           .describe(
-            "Name of the systemd service, e.g. 'nginx' or 'nixclaw'"
+            "Name of the systemd service, e.g. 'nginx' or 'clawnix'"
           ),
       }),
       run: async (input) => {
@@ -54,14 +54,14 @@ export class NixOSToolsPlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_list_services",
+      name: "clawnix_list_services",
       description: "List all running systemd services",
       inputSchema: z.object({}),
       run: async () => listServices(),
     });
 
     ctx.registerTool({
-      name: "nixclaw_generations",
+      name: "clawnix_generations",
       description:
         "List NixOS system generations with dates and current marker. Shows the history of system configurations.",
       inputSchema: z.object({}),
@@ -69,7 +69,7 @@ export class NixOSToolsPlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_generation_diff",
+      name: "clawnix_generation_diff",
       description:
         "Compare two NixOS generations showing added, removed, and changed packages. Use this to understand what changed between system rebuilds.",
       inputSchema: z.object({
@@ -83,7 +83,7 @@ export class NixOSToolsPlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_nixos_option",
+      name: "clawnix_nixos_option",
       description:
         "Query the current value and description of a NixOS configuration option (e.g. 'services.openssh.enable', 'networking.firewall.allowedTCPPorts')",
       inputSchema: z.object({

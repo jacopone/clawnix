@@ -3,17 +3,17 @@ import { Agent } from "./agent.js";
 import { EventBus } from "./event-bus.js";
 import { StateStore } from "./state.js";
 import { PluginHost } from "./plugin-host.js";
-import type { NixClawConfig } from "./config.js";
+import type { ClawNixConfig } from "./config.js";
 import { unlinkSync, writeFileSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-agent-test.db";
-const FAKE_KEY_FILE = "/tmp/nixclaw-test-apikey";
+const TEST_DB = "/tmp/clawnix-agent-test.db";
+const FAKE_KEY_FILE = "/tmp/clawnix-test-apikey";
 
 describe("Agent", () => {
   let bus: EventBus;
   let state: StateStore;
   let host: PluginHost;
-  let config: NixClawConfig;
+  let config: ClawNixConfig;
 
   beforeEach(() => {
     bus = new EventBus();
@@ -26,8 +26,8 @@ describe("Agent", () => {
       voice: { stt: { provider: "claude" }, tts: { provider: "none" } },
       tools: { nixos: { enable: false }, dev: { enable: false } },
       mcp: { servers: {} },
-      workspaceDir: "/tmp/nixclaw-agent-test-workspace",
-      stateDir: "/tmp/nixclaw-agent-test-state",
+      workspaceDir: "/tmp/clawnix-agent-test-workspace",
+      stateDir: "/tmp/clawnix-agent-test-state",
     };
   });
 

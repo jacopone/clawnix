@@ -3,7 +3,7 @@ import { TelegramChannel } from "./index.js";
 import { EventBus } from "../../core/event-bus.js";
 
 describe("TelegramChannel", () => {
-  it("implements NixClawPlugin interface", () => {
+  it("implements ClawNixPlugin interface", () => {
     const channel = new TelegramChannel();
     expect(channel.name).toBe("telegram");
     expect(channel.version).toBeDefined();

@@ -7,8 +7,8 @@ import { loadPersonality } from "./personality.js";
 import type { EventBus } from "./event-bus.js";
 import type { StateStore } from "./state.js";
 import type { PluginHost } from "./plugin-host.js";
-import type { NixClawConfig } from "./config.js";
-import type { NixClawMessage } from "./types.js";
+import type { ClawNixConfig } from "./config.js";
+import type { ClawNixMessage } from "./types.js";
 
 export class Agent {
   private claude: ClaudeClient;
@@ -16,26 +16,26 @@ export class Agent {
   private systemPrompt: string;
 
   constructor(
-    private config: NixClawConfig,
+    private config: ClawNixConfig,
     private eventBus: EventBus,
     private state: StateStore,
     private pluginHost: PluginHost,
   ) {
-    this.systemPrompt = loadPersonality(config.workspaceDir ?? join(homedir(), ".config/nixclaw"));
+    this.systemPrompt = loadPersonality(config.workspaceDir ?? join(homedir(), ".config/clawnix"));
     const apiKey = readFileSync(config.ai.apiKeyFile, "utf-8").trim();
     this.claude = new ClaudeClient(apiKey, config.ai.model);
     this.conversations = new ConversationManager(state);
 
     this.eventBus.on("message:incoming", (payload) => {
       console.log("[agent] Received message:", JSON.stringify(payload));
-      this.handleMessage(payload as NixClawMessage).catch((err) => {
+      this.handleMessage(payload as ClawNixMessage).catch((err) => {
         console.error("[agent] Error handling message:", err);
       });
     });
     console.log("[agent] Agent initialized, listening for messages");
   }
 
-  private async handleMessage(msg: NixClawMessage): Promise<void> {
+  private async handleMessage(msg: ClawNixMessage): Promise<void> {
     const conversationId = `${msg.channel}:${msg.sender}`;
     console.log("[agent] Processing message for conversation:", conversationId);
     this.conversations.addUserMessage(conversationId, msg.text);

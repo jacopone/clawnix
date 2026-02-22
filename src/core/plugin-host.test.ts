@@ -4,9 +4,9 @@ import { z } from "zod";
 import { EventBus } from "./event-bus.js";
 import { StateStore } from "./state.js";
 import { PluginHost } from "./plugin-host.js";
-import type { NixClawPlugin, PluginContext } from "./types.js";
+import type { ClawNixPlugin, PluginContext } from "./types.js";
 
-const DB_PATH = "/tmp/nixclaw-pluginhost-test.db";
+const DB_PATH = "/tmp/clawnix-pluginhost-test.db";
 
 function cleanup() {
   for (const suffix of ["", "-wal", "-shm"]) {
@@ -15,7 +15,7 @@ function cleanup() {
   }
 }
 
-function createTestPlugin(overrides: Partial<NixClawPlugin> = {}): NixClawPlugin {
+function createTestPlugin(overrides: Partial<ClawNixPlugin> = {}): ClawNixPlugin {
   return {
     name: "test-plugin",
     version: "1.0.0",

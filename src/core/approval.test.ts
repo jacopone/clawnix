@@ -3,7 +3,7 @@ import { ApprovalStore } from "./approval.js";
 import { StateStore } from "./state.js";
 import { unlinkSync } from "node:fs";
 
-const TEST_DB = "/tmp/nixclaw-approval-test.db";
+const TEST_DB = "/tmp/clawnix-approval-test.db";
 
 describe("ApprovalStore", () => {
   let state: StateStore;

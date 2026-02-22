@@ -1,6 +1,6 @@
 import type { EventBus } from "./event-bus.js";
 import type { StateStore } from "./state.js";
-import type { NixClawPlugin, PluginContext, Tool, Logger } from "./types.js";
+import type { ClawNixPlugin, PluginContext, Tool, Logger } from "./types.js";
 import { evaluatePolicy } from "./tool-policy.js";
 import type { ToolPolicy } from "./tool-policy.js";
 
@@ -15,7 +15,7 @@ function createLogger(pluginName: string): Logger {
 }
 
 interface RegisteredPlugin {
-  plugin: NixClawPlugin;
+  plugin: ClawNixPlugin;
   config: Record<string, unknown>;
 }
 
@@ -30,7 +30,7 @@ export class PluginHost {
   ) {}
 
   async register(
-    plugin: NixClawPlugin,
+    plugin: ClawNixPlugin,
     config: Record<string, unknown>
   ): Promise<void> {
     this.plugins.push({ plugin, config });

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { NixClawPlugin, PluginContext, NixClawMessage } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext, ClawNixMessage } from "../../core/types.js";
 import type { EventBus } from "../../core/event-bus.js";
 
 interface HeartbeatConfig {
@@ -9,7 +9,7 @@ interface HeartbeatConfig {
   intervalMinutes?: number;
 }
 
-export class HeartbeatPlugin implements NixClawPlugin {
+export class HeartbeatPlugin implements ClawNixPlugin {
   name = "heartbeat";
   version = "0.1.0";
   private interval?: ReturnType<typeof setInterval>;
@@ -35,7 +35,7 @@ export class HeartbeatPlugin implements NixClawPlugin {
     const content = readFileSync(heartbeatPath, "utf-8").trim();
     if (!content) return;
 
-    const msg: NixClawMessage = {
+    const msg: ClawNixMessage = {
       id: randomUUID(),
       channel: "heartbeat",
       sender: "heartbeat",

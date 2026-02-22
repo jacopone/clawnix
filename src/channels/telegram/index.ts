@@ -1,7 +1,7 @@
 import { Bot, InputFile } from "grammy";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import type { NixClawPlugin, PluginContext, NixClawMessage } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext, ClawNixMessage } from "../../core/types.js";
 import { createSTT } from "../../voice/stt.js";
 import { createTTS } from "../../voice/tts.js";
 import type { STTProvider } from "../../voice/stt.js";
@@ -18,7 +18,7 @@ interface TelegramConfig {
   };
 }
 
-export class TelegramChannel implements NixClawPlugin {
+export class TelegramChannel implements ClawNixPlugin {
   name = "telegram";
   version = "0.1.0";
   private bot?: Bot;
@@ -82,7 +82,7 @@ export class TelegramChannel implements NixClawPlugin {
         if (codeMatch) {
           const success = pairing.completePairing(userId, text);
           if (success) {
-            await gramCtx.reply("✓ Pairing successful! You now have access to NixClaw.");
+            await gramCtx.reply("✓ Pairing successful! You now have access to ClawNix.");
           } else {
             await gramCtx.reply("✗ Invalid pairing code. Try again.");
           }
@@ -92,7 +92,7 @@ export class TelegramChannel implements NixClawPlugin {
         // Unknown user — generate pairing code and log it
         const code = pairing.requestPairing(userId);
         ctx.logger.info(`Pairing code for user ${userId}: ${code}`);
-        await gramCtx.reply("🔐 Access requires pairing. A 6-digit code has been generated — check the NixClaw server logs or ask the admin.");
+        await gramCtx.reply("🔐 Access requires pairing. A 6-digit code has been generated — check the ClawNix server logs or ask the admin.");
         return;
       }
 
@@ -104,7 +104,7 @@ export class TelegramChannel implements NixClawPlugin {
         return;
       }
 
-      const msg: NixClawMessage = {
+      const msg: ClawNixMessage = {
         id: randomUUID(),
         channel: "telegram",
         sender: userId,
@@ -133,7 +133,7 @@ export class TelegramChannel implements NixClawPlugin {
 
         this.audioSenders.add(userId);
 
-        const msg: NixClawMessage = {
+        const msg: ClawNixMessage = {
           id: randomUUID(),
           channel: "telegram",
           sender: userId,

@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import type { NixClawPlugin, PluginContext } from "../../core/types.js";
+import type { ClawNixPlugin, PluginContext } from "../../core/types.js";
 import { safeExec } from "./safe-exec.js";
 
 interface ObserveConfig {
   allowedReadPaths?: string[];
 }
 
-export class ObservePlugin implements NixClawPlugin {
+export class ObservePlugin implements ClawNixPlugin {
   name = "observe";
   version = "0.1.0";
 
@@ -17,7 +17,7 @@ export class ObservePlugin implements NixClawPlugin {
     const allowedPaths = config.allowedReadPaths ?? ["/tmp", "/var/log", "/etc/nixos"];
 
     ctx.registerTool({
-      name: "nixclaw_processes",
+      name: "clawnix_processes",
       description:
         "Search for running processes by name. Returns matching process info (PID, CPU, MEM, command).",
       inputSchema: z.object({
@@ -39,7 +39,7 @@ export class ObservePlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_resources",
+      name: "clawnix_resources",
       description:
         "Get system resource usage: memory (free -h), disk (df -h), CPU load (uptime), and top processes by memory.",
       inputSchema: z.object({}),
@@ -56,11 +56,11 @@ export class ObservePlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_journal",
+      name: "clawnix_journal",
       description:
         "Read systemd journal logs for a service. Returns the most recent log entries.",
       inputSchema: z.object({
-        service: z.string().describe("Systemd service name (e.g. 'nixclaw', 'nginx', 'docker')"),
+        service: z.string().describe("Systemd service name (e.g. 'clawnix', 'nginx', 'docker')"),
         lines: z.number().optional().describe("Number of recent lines to return (default 50)"),
       }),
       run: async (input) => {
@@ -75,7 +75,7 @@ export class ObservePlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_network",
+      name: "clawnix_network",
       description:
         "Get network information: listening ports, active connections, and network interfaces.",
       inputSchema: z.object({
@@ -103,7 +103,7 @@ export class ObservePlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_read_file",
+      name: "clawnix_read_file",
       description:
         "Read the contents of a file. Only files within allowed directories can be read. Max 10KB returned.",
       inputSchema: z.object({
@@ -143,7 +143,7 @@ export class ObservePlugin implements NixClawPlugin {
     });
 
     ctx.registerTool({
-      name: "nixclaw_query",
+      name: "clawnix_query",
       description:
         "Run a read-only system query using an allowed command. Commands are restricted to an allowlist and arguments are sanitized to prevent shell injection. Use this when no specific tool exists for the information you need.",
       inputSchema: z.object({
