@@ -1,7 +1,7 @@
 { self }:
 { config, lib, pkgs, ... }:
 let
-  cfg = config.services.nixclaw;
+  cfg = config.services.clawnix;
   configJSON = builtins.toJSON {
     ai = {
       provider = cfg.ai.provider;
@@ -61,8 +61,8 @@ let
   };
 in
 {
-  options.services.nixclaw = {
-    enable = lib.mkEnableOption "NixClaw AI agent";
+  options.services.clawnix = {
+    enable = lib.mkEnableOption "ClawNix AI agent";
 
     ai = {
       provider = lib.mkOption {
@@ -150,7 +150,7 @@ in
         allowConfigEdits = lib.mkOption {
           type = lib.types.bool;
           default = false;
-          description = "Allow NixClaw to propose config file edits";
+          description = "Allow ClawNix to propose config file edits";
         };
       };
       dev = {
@@ -185,7 +185,7 @@ in
 
     workspaceDir = lib.mkOption {
       type = lib.types.path;
-      default = "/var/lib/nixclaw/workspace";
+      default = "/var/lib/clawnix/workspace";
       description = "Directory containing personality files (IDENTITY.md, SOUL.md, USER.md, HEARTBEAT.md)";
     };
 
@@ -234,24 +234,24 @@ in
 
     stateDir = lib.mkOption {
       type = lib.types.path;
-      default = "/var/lib/nixclaw";
+      default = "/var/lib/clawnix";
       description = "Directory for persistent state (SQLite database)";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.services.nixclaw = {
-      description = "NixClaw AI Agent";
+    systemd.services.clawnix = {
+      description = "ClawNix AI Agent";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
-      environment.NIXCLAW_CONFIG = configJSON;
+      environment.CLAWNIX_CONFIG = configJSON;
 
       serviceConfig = {
-        ExecStart = "${self.packages.${pkgs.system}.default}/bin/nixclaw";
+        ExecStart = "${self.packages.${pkgs.system}.default}/bin/clawnix";
         DynamicUser = true;
-        StateDirectory = "nixclaw";
+        StateDirectory = "clawnix";
         ProtectSystem = "strict";
         ProtectHome = "read-only";
         ReadWritePaths = [ cfg.stateDir cfg.workspaceDir ] ++ lib.optional cfg.tools.nixos.enable cfg.tools.nixos.flakePath;

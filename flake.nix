@@ -1,5 +1,5 @@
 {
-  description = "NixClaw - Personal AI agent platform for NixOS";
+  description = "ClawNix - Personal AI agent platform for NixOS";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -12,21 +12,21 @@
     in
     {
       packages.${system}.default = pkgs.buildNpmPackage {
-        pname = "nixclaw";
-        version = "0.1.0";
+        pname = "clawnix";
+        version = "0.2.0";
         src = ./.;
         npmDepsHash = "sha256-a76JqfEuYk7UkNk2CtM5ORgNJr/hFwmfidI6AMKi1LE=";
         nodejs = pkgs.nodejs_22;
         installPhase = ''
           runHook preInstall
-          mkdir -p $out/bin $out/lib/nixclaw
-          cp -r dist/* $out/lib/nixclaw/
-          cp -r node_modules $out/lib/nixclaw/
-          cat > $out/bin/nixclaw <<EOF
+          mkdir -p $out/bin $out/lib/clawnix
+          cp -r dist/* $out/lib/clawnix/
+          cp -r node_modules $out/lib/clawnix/
+          cat > $out/bin/clawnix <<EOF
           #!/bin/sh
-          exec ${pkgs.nodejs_22}/bin/node $out/lib/nixclaw/index.js "\$@"
+          exec ${pkgs.nodejs_22}/bin/node $out/lib/clawnix/index.js "\$@"
           EOF
-          chmod +x $out/bin/nixclaw
+          chmod +x $out/bin/clawnix
           runHook postInstall
         '';
       };

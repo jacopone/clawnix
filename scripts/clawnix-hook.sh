@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# scripts/nixclaw-hook.sh — Claude Code PreToolUse hook
+# scripts/clawnix-hook.sh — Claude Code PreToolUse hook
 # Sends approval request to ClawNix, waits for Telegram response
 #
 # Usage in Claude Code settings (.claude/settings.json):
 #   "hooks": {
 #     "PreToolUse": [{
 #       "matcher": "Bash|Write",
-#       "command": "/path/to/nixclaw-hook.sh"
+#       "command": "/path/to/clawnix-hook.sh"
 #     }]
 #   }
 #
