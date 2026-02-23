@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseApprovalCommand } from "./approval.js";
+import { parseApprovalCommand, parseCallbackData } from "./approval.js";
 
 describe("parseApprovalCommand", () => {
   it("parses /allow <id>", () => {
@@ -20,5 +20,17 @@ describe("parseApprovalCommand", () => {
   it("returns null when id is missing", () => {
     expect(parseApprovalCommand("/allow")).toBeNull();
     expect(parseApprovalCommand("/deny ")).toBeNull();
+  });
+});
+
+describe("parseCallbackData", () => {
+  it("parses approve callback", () => {
+    expect(parseCallbackData("approve:abc123")).toEqual({ decision: "allow", id: "abc123" });
+  });
+  it("parses deny callback", () => {
+    expect(parseCallbackData("deny:abc123")).toEqual({ decision: "deny", id: "abc123" });
+  });
+  it("returns null for unknown format", () => {
+    expect(parseCallbackData("something:else")).toBeNull();
   });
 });

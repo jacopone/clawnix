@@ -1,4 +1,4 @@
-import { Bot, InputFile } from "grammy";
+import { Bot, InlineKeyboard, InputFile } from "grammy";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { ClawNixPlugin, PluginContext, ClawNixMessage } from "../../core/types.js";
@@ -6,7 +6,7 @@ import { createSTT } from "../../voice/stt.js";
 import { createTTS } from "../../voice/tts.js";
 import type { STTProvider } from "../../voice/stt.js";
 import type { TTSProvider } from "../../voice/tts.js";
-import { parseApprovalCommand } from "./approval.js";
+import { parseApprovalCommand, parseCallbackData } from "./approval.js";
 import { PairingManager } from "./pairing.js";
 
 interface TelegramConfig {
@@ -148,6 +148,27 @@ export class TelegramChannel implements ClawNixPlugin {
       }
     });
 
+    this.bot.on("callback_query:data", async (gramCtx) => {
+      const userId = String(gramCtx.from.id);
+      if (!pairing.isAuthorized(userId)) {
+        await gramCtx.answerCallbackQuery({ text: "Not authorized" });
+        return;
+      }
+
+      const result = parseCallbackData(gramCtx.callbackQuery.data);
+      if (result) {
+        ctx.eventBus.emit("approval:decide", result);
+        await gramCtx.answerCallbackQuery({
+          text: `${result.decision === "allow" ? "Approved" : "Denied"}`,
+        });
+        try {
+          await gramCtx.editMessageText(
+            `${gramCtx.callbackQuery.message?.text}\n\n✓ ${result.decision === "allow" ? "Allowed" : "Denied"} by user`,
+          );
+        } catch { /* message may have been deleted */ }
+      }
+    });
+
     this.cleanups.push(ctx.eventBus.on("message:response", async (payload: unknown) => {
       const response = payload as { channel: string; sender: string; text: string };
       if (response.channel !== "telegram") return;
@@ -188,9 +209,15 @@ export class TelegramChannel implements ClawNixPlugin {
       const notifyUser = allowedUsers[0];
       if (!notifyUser || !this.bot) return;
 
-      const message = `🔐 Approval Request [${req.id}]\n\nTool: ${req.tool}\nInput: ${req.input}\nSession: ${req.session}\n\nReply:\n/allow ${req.id}\n/deny ${req.id}`;
+      const message = `🔐 Approval Request [${req.id}]\n\nTool: ${req.tool}\nInput: ${req.input}\nSession: ${req.session}`;
+      const keyboard = new InlineKeyboard()
+        .text("✅ Allow", `approve:${req.id}`)
+        .text("❌ Deny", `deny:${req.id}`);
+
       try {
-        await this.bot.api.sendMessage(Number(notifyUser), message);
+        await this.bot.api.sendMessage(Number(notifyUser), message, {
+          reply_markup: keyboard,
+        });
       } catch (err) {
         ctx.logger.error("Failed to send approval notification:", err);
       }
