@@ -22,6 +22,28 @@
     tailscaleInterface = "tailscale0";
     # secretsGroup = "keys";  # uncomment when using sops-nix
 
+    # MCP tool servers shared across all agents
+    mcp.servers = {
+      browser = {
+        command = "${self.packages.${pkgs.system}.mcp-browser}/bin/clawnix-mcp-browser";
+      };
+      documents = {
+        command = "${self.packages.${pkgs.system}.mcp-documents}/bin/clawnix-mcp-documents";
+        env.CLAWNIX_DOCUMENTS_DIR = "/var/lib/clawnix/documents";
+      };
+      email = {
+        command = "${self.packages.${pkgs.system}.mcp-email}/bin/clawnix-mcp-email";
+        env = {
+          CLAWNIX_EMAIL_IMAP_HOST = "imap.gmail.com";
+          CLAWNIX_EMAIL_SMTP_HOST = "smtp.gmail.com";
+          # CLAWNIX_EMAIL_USER_FILE = config.sops.secrets."clawnix/email-user".path;
+          # CLAWNIX_EMAIL_PASS_FILE = config.sops.secrets."clawnix/email-pass".path;
+          CLAWNIX_EMAIL_USER_FILE = "/run/secrets/email-user";
+          CLAWNIX_EMAIL_PASS_FILE = "/run/secrets/email-pass";
+        };
+      };
+    };
+
     agents.personal = {
       description = "calendar, reminders, daily tasks, general questions";
       ai = {
@@ -37,6 +59,21 @@
       channels.webui.enable = true;
       tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" ];
       workspaceDir = "/var/lib/clawnix/personal";
+
+      security.toolPolicies = [
+        # Browser: auto (read-only)
+        { tool = "search_web"; effect = "allow"; }
+        { tool = "read_page"; effect = "allow"; }
+        # Documents: auto (creates files locally)
+        { tool = "create_presentation"; effect = "allow"; }
+        { tool = "create_spreadsheet"; effect = "allow"; }
+        { tool = "create_pdf"; effect = "allow"; }
+        # Email: tiered (read=auto, draft=auto, send=approve)
+        { tool = "list_emails"; effect = "allow"; }
+        { tool = "read_email"; effect = "allow"; }
+        { tool = "draft_reply"; effect = "allow"; }
+        { tool = "send_email"; effect = "approve"; }
+      ];
     };
   };
 

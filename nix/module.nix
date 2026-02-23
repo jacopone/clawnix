@@ -278,7 +278,7 @@ in
           StateDirectory = "clawnix/${name}";
           ProtectSystem = "strict";
           ProtectHome = "read-only";
-          ReadWritePaths = [ "${cfg.stateDir}/${name}" agentCfg.workspaceDir ];
+          ReadWritePaths = [ cfg.stateDir "${cfg.stateDir}/${name}" agentCfg.workspaceDir ];
           NoNewPrivileges = true;
           PrivateTmp = true;
           RestartSec = 10;
