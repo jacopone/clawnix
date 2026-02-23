@@ -42,6 +42,14 @@
           CLAWNIX_EMAIL_PASS_FILE = "/run/secrets/email-pass";
         };
       };
+      calendar = {
+        command = "${self.packages.${pkgs.system}.mcp-calendar}/bin/clawnix-mcp-calendar";
+        env = {
+          # CLAWNIX_GOOGLE_CREDENTIALS_FILE = config.sops.secrets."clawnix/google-creds".path;
+          CLAWNIX_GOOGLE_CREDENTIALS_FILE = "/run/secrets/google-credentials.json";
+          CLAWNIX_GOOGLE_TOKEN_FILE = "/var/lib/clawnix/google-token.json";
+        };
+      };
     };
 
     agents.personal = {
@@ -57,7 +65,7 @@
         botTokenFile = "/run/secrets/telegram-bot-token";
       };
       channels.webui.enable = true;
-      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" ];
+      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" ];
       workspaceDir = "/var/lib/clawnix/personal";
 
       filesystem = {
@@ -79,6 +87,58 @@
         { tool = "read_email"; effect = "allow"; }
         { tool = "draft_reply"; effect = "allow"; }
         { tool = "send_email"; effect = "approve"; }
+        # Calendar: list=auto, create=approve
+        { tool = "list_events"; effect = "allow"; }
+        { tool = "find_free_time"; effect = "allow"; }
+        { tool = "create_event"; effect = "approve"; }
+      ];
+    };
+
+    agents.devops = {
+      description = "server health, NixOS, deployments, CI/CD, infrastructure";
+      ai = {
+        model = "claude-sonnet-4-6";
+        apiKeyFile = "/run/secrets/anthropic-api-key";
+      };
+      channels.telegram.enable = true;
+      channels.webui = {
+        enable = true;
+        port = 3334;
+      };
+      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" ];
+      workspaceDir = "/var/lib/clawnix/devops";
+      filesystem.readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
+    };
+
+    agents.researcher = {
+      description = "web research, article summaries, topic monitoring";
+      ai = {
+        model = "claude-sonnet-4-6";
+        apiKeyFile = "/run/secrets/anthropic-api-key";
+      };
+      channels.telegram.enable = true;
+      tools = [ "scheduler" "heartbeat" "memory" "directives" ];
+      workspaceDir = "/var/lib/clawnix/researcher";
+    };
+
+    agents.support = {
+      description = "email drafts, client communication, documents (PPTX/XLSX/PDF)";
+      ai = {
+        model = "claude-sonnet-4-6";
+        apiKeyFile = "/run/secrets/anthropic-api-key";
+      };
+      channels.telegram.enable = true;
+      tools = [ "scheduler" "memory" "directives" ];
+      workspaceDir = "/var/lib/clawnix/support";
+
+      security.toolPolicies = [
+        { tool = "list_emails"; effect = "allow"; }
+        { tool = "read_email"; effect = "allow"; }
+        { tool = "draft_reply"; effect = "allow"; }
+        { tool = "send_email"; effect = "approve"; }
+        { tool = "create_presentation"; effect = "allow"; }
+        { tool = "create_spreadsheet"; effect = "allow"; }
+        { tool = "create_pdf"; effect = "allow"; }
       ];
     };
   };
