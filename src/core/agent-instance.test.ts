@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createAgentInstance } from "./agent-instance.js";
+import { createAgentInstance, wireAgentInstance } from "./agent-instance.js";
 
 describe("createAgentInstance", () => {
   it("creates an instance with the given name and config", async () => {
@@ -62,6 +62,144 @@ describe("createAgentInstance", () => {
 
     // Policies should be set on the plugin host
     expect(instance.pluginHost).toBeDefined();
+    await instance.shutdown();
+  });
+});
+
+describe("wireAgentInstance", () => {
+  it("registers scheduler plugin tools when 'scheduler' is in tools list", async () => {
+    const instance = await createAgentInstance("ops", {
+      description: "ops agent",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["scheduler"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-scheduler",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const { mcpManager } = await wireAgentInstance(instance, {
+      description: "ops agent",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["scheduler"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-scheduler",
+      toolPolicies: [],
+    }, {});
+
+    const toolNames = instance.pluginHost.getTools().map((t) => t.name);
+    expect(toolNames).toContain("clawnix_schedule_task");
+    expect(toolNames).toContain("clawnix_list_scheduled");
+
+    await mcpManager.disconnectAll();
+    await instance.shutdown();
+  });
+
+  it("registers multiple plugins for multiple tool names", async () => {
+    const instance = await createAgentInstance("multi", {
+      description: "multi-tool agent",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["scheduler", "dev"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-multi",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const agentConfig = {
+      description: "multi-tool agent",
+      ai: { provider: "claude" as const, model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["scheduler", "dev"],
+      mcp: { servers: [] as string[] },
+      workspaceDir: "/tmp/clawnix-test-wire-multi",
+      toolPolicies: [] as Array<{ tool: string; effect: "allow" | "deny" | "approve" }>,
+    };
+
+    const { mcpManager } = await wireAgentInstance(instance, agentConfig, {});
+
+    const toolNames = instance.pluginHost.getTools().map((t) => t.name);
+    expect(toolNames).toContain("clawnix_schedule_task");
+    expect(toolNames).toContain("clawnix_list_scheduled");
+    expect(toolNames).toContain("clawnix_git_status");
+    expect(toolNames).toContain("clawnix_run_tests");
+    expect(toolNames).toContain("clawnix_claude_sessions");
+
+    await mcpManager.disconnectAll();
+    await instance.shutdown();
+  });
+
+  it("registers no plugins when tools list is empty", async () => {
+    const instance = await createAgentInstance("empty", {
+      description: "empty agent",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: [],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-empty",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const { mcpManager } = await wireAgentInstance(instance, {
+      description: "empty agent",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: [],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-empty",
+      toolPolicies: [],
+    }, {});
+
+    expect(instance.pluginHost.getTools()).toHaveLength(0);
+
+    await mcpManager.disconnectAll();
+    await instance.shutdown();
+  });
+
+  it("creates an Agent instance that listens for messages", async () => {
+    const instance = await createAgentInstance("with-agent", {
+      description: "agent with claude loop",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["scheduler"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-agent",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const { agent, mcpManager } = await wireAgentInstance(instance, {
+      description: "agent with claude loop",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["scheduler"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-agent",
+      toolPolicies: [],
+    }, {});
+
+    expect(agent).toBeDefined();
+
+    await mcpManager.disconnectAll();
+    await instance.shutdown();
+  });
+
+  it("skips unknown tool names with a warning", async () => {
+    const instance = await createAgentInstance("unknown", {
+      description: "agent with unknown tool",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["nonexistent", "scheduler"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-unknown",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const { mcpManager } = await wireAgentInstance(instance, {
+      description: "agent with unknown tool",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["nonexistent", "scheduler"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-unknown",
+      toolPolicies: [],
+    }, {});
+
+    const toolNames = instance.pluginHost.getTools().map((t) => t.name);
+    // scheduler tools should still be registered despite the unknown tool
+    expect(toolNames).toContain("clawnix_schedule_task");
+
+    await mcpManager.disconnectAll();
     await instance.shutdown();
   });
 });

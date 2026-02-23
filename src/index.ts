@@ -16,8 +16,8 @@ import { HeartbeatPlugin } from "./tools/heartbeat/index.js";
 import { ApprovalStore } from "./core/approval.js";
 import { Router } from "./core/router.js";
 import type { AgentRoute } from "./core/router.js";
-import { createAgentInstance } from "./core/agent-instance.js";
-import type { AgentInstance } from "./core/agent-instance.js";
+import { createAgentInstance, wireAgentInstance } from "./core/agent-instance.js";
+import type { AgentInstance, WiredAgentInstance } from "./core/agent-instance.js";
 import { mkdirSync } from "node:fs";
 
 export function buildAgentRoutes(
@@ -53,24 +53,41 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
   const router = new Router(routes);
 
   const instances: AgentInstance[] = [];
+  const wired: WiredAgentInstance[] = [];
 
   for (const [name, agentConfig] of Object.entries(agents)) {
     const instance = await createAgentInstance(name, agentConfig, {
       stateDir: config.stateDir,
     });
+
+    // Resolve MCP server configs from global config by name
+    const mcpServerConfigs: Record<string, { command: string; args?: string[]; env?: Record<string, string> }> = {};
+    for (const serverName of agentConfig.mcp.servers) {
+      const serverConfig = config.mcp?.servers?.[serverName];
+      if (serverConfig) {
+        mcpServerConfigs[serverName] = serverConfig;
+      } else {
+        console.warn(`[multi-agent] MCP server "${serverName}" referenced by agent "${name}" not found in global config`);
+      }
+    }
+
+    const wiredInstance = await wireAgentInstance(instance, agentConfig, mcpServerConfigs);
     instances.push(instance);
+    wired.push(wiredInstance);
     console.log(`  agent "${name}" (/${routes[name].prefix}) — ${agentConfig.description}`);
   }
 
   console.log(`\n${instances.length} agent(s) started. Router active.\n`);
 
-  // Shared Telegram channel dispatches via router to correct agent event bus
   if (config.channels.telegram.enable) {
     console.log("Telegram channel enabled — messages will be routed to agents via prefix/classification");
   }
 
   const shutdown = async () => {
     console.log("\nShutting down all agents...");
+    for (const w of wired) {
+      await w.mcpManager.disconnectAll();
+    }
     for (const instance of instances) {
       await instance.shutdown();
     }
@@ -80,8 +97,7 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 
-  // Keep references for future wiring
-  return { router, instances };
+  return { router, instances, wired };
 }
 
 async function startSingleAgent(config: ReturnType<typeof loadConfig>) {

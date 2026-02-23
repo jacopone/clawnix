@@ -3,7 +3,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { Tool } from "./types.js";
 import { z } from "zod";
 
-interface McpServerConfig {
+export interface McpServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;

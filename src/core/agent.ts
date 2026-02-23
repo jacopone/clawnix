@@ -7,8 +7,10 @@ import { loadPersonality } from "./personality.js";
 import type { EventBus } from "./event-bus.js";
 import type { StateStore } from "./state.js";
 import type { PluginHost } from "./plugin-host.js";
-import type { ClawNixConfig } from "./config.js";
+import type { ClawNixConfig, AgentInstanceConfig } from "./config.js";
 import type { ClawNixMessage } from "./types.js";
+
+export type AgentConfig = ClawNixConfig | AgentInstanceConfig;
 
 export class Agent {
   private claude: ClaudeClient;
@@ -16,12 +18,13 @@ export class Agent {
   private systemPrompt: string;
 
   constructor(
-    private config: ClawNixConfig,
+    private config: AgentConfig,
     private eventBus: EventBus,
     private state: StateStore,
     private pluginHost: PluginHost,
   ) {
-    this.systemPrompt = loadPersonality(config.workspaceDir ?? join(homedir(), ".config/clawnix"));
+    const workspaceDir = config.workspaceDir ?? join(homedir(), ".config/clawnix");
+    this.systemPrompt = loadPersonality(workspaceDir);
     const apiKey = readFileSync(config.ai.apiKeyFile, "utf-8").trim();
     this.claude = new ClaudeClient(apiKey, config.ai.model);
     this.conversations = new ConversationManager(state);
