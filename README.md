@@ -1,12 +1,14 @@
 # ClawNix
 
-Self-evolving AI agent platform for NixOS. Agents are NixOS modules. Capabilities are native plugins. The system can modify its own infrastructure with human approval and atomic rollback.
+Self-evolving AI agent platform for NixOS. Inspired by [OpenClaw](https://github.com/openclaw/openclaw), rebuilt around what NixOS uniquely enables for autonomous agents.
 
 ## What ClawNix does
 
-ClawNix defines AI agents as NixOS services. Each agent has its own channels (Telegram, web UI, terminal), tools, security policies, and workspace. A natural language router dispatches incoming messages to the right agent. Agents delegate tasks to each other via an AgentBroker with audit trail and depth limiting.
+ClawNix is a personal AI agent platform inspired by OpenClaw's vision of an always-on AI assistant. Where OpenClaw targets broad cross-platform support with 15+ channel integrations and a Gateway architecture, ClawNix takes a different path: it leans into NixOS as a first-class deployment target.
 
-The key differentiator: NixOS declarative configuration + atomic rollbacks makes it safe for an agent to propose changes to its own infrastructure. No other OS provides this safety net natively.
+Agents are declared as NixOS modules. Each agent has its own channels (Telegram, web UI, terminal), tools, security policies, and workspace. A natural language router dispatches incoming messages to the right agent. Agents delegate tasks to each other via an AgentBroker with audit trail and depth limiting.
+
+The key differentiator: NixOS declarative configuration + atomic rollbacks makes it safe for an agent to propose changes to its own infrastructure. No other OS provides this safety net natively. This enables a capability OpenClaw deliberately avoids: **self-evolution** — an agent that can modify its own system configuration, validate the change, apply it, and auto-rollback on failure.
 
 ## Architecture
 
@@ -179,21 +181,30 @@ services.clawnix = {
 
 See `nix/server-example.nix` for a complete 4-agent configuration.
 
-## How ClawNix compares
+## Inspired by OpenClaw
 
-| | ClawNix | OpenClaw | PicoClaw |
-|---|---------|----------|----------|
-| Language | TypeScript | TypeScript | Go |
-| Deployment | NixOS module | Docker/Nix/systemd | Single binary |
-| Agents | Multi-agent with router | Single gateway | Single agent |
-| Channels | Telegram, Web UI, Terminal | 15+ platforms | Telegram, Discord |
-| Tools | 13 native plugins + nixpkgs exec | MCP servers + skills | Built-in |
-| System integration | NixOS-native (self-evolve, rebuild, rollback) | Cross-platform | Minimal |
-| Security | systemd DynamicUser + filesystem policies + tool approval | Gateway-level | Process-level |
-| Inter-agent | Delegation with audit trail | N/A | N/A |
+ClawNix draws direct inspiration from [OpenClaw](https://github.com/openclaw/openclaw), the most popular open-source personal AI assistant. OpenClaw proved that an always-on AI agent with tool access, voice interaction, and messaging integration is practical and useful. ClawNix builds on that premise.
+
+**What ClawNix borrows from OpenClaw's playbook:**
+- Tool-use agent loop with human-in-the-loop approval
+- Telegram as a primary channel with inline keyboard for decisions
+- Skills as markdown files loaded into the system prompt
+- Personality/workspace files that shape agent behavior
+
+**Where ClawNix diverges:**
+
+| | ClawNix | OpenClaw |
+|---|---------|----------|
+| Deployment | `services.clawnix.enable = true` in NixOS config | Docker, Nix package, or systemd install |
+| Agents | Multiple named agents as NixOS services, each isolated | Single gateway agent |
+| Tool provisioning | `nix shell nixpkgs#tool` — ephemeral, reproducible | Pre-installed CLIs or MCP servers |
+| Self-modification | Agent proposes NixOS config changes, validates, rebuilds, auto-rollbacks | Cannot modify its own infrastructure |
+| Safety net | NixOS atomic rollbacks built into the OS | Docker sandbox (opt-in) |
+| Reproducibility | Entire system defined in Nix, `nixos-rebuild switch` deploys everything | Depends on host state |
+| Channels | Telegram, Web UI, Terminal (3) | WhatsApp, Telegram, Slack, Discord, Signal, iMessage, Teams, Matrix, and more (15+) |
+| Inter-agent | Delegation via AgentBroker with audit trail | N/A |
 
 **Use OpenClaw** if you want broad platform support and the largest ecosystem.
-**Use PicoClaw** if you need an agent on constrained hardware.
 **Use ClawNix** if you run NixOS and want declarative multi-agent deployment with self-evolving infrastructure.
 
 ## Project structure
