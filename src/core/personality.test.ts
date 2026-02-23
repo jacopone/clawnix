@@ -41,4 +41,28 @@ describe("loadPersonality", () => {
     const prompt = loadPersonality(TEST_DIR);
     expect(prompt).toContain("gen 487");
   });
+
+  it("loads GLOBAL.md from globalDir when provided", () => {
+    const globalDir = `${TEST_DIR}/global`;
+    mkdirSync(globalDir, { recursive: true });
+    writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Identity.");
+    writeFileSync(`${globalDir}/GLOBAL.md`, "The NixOS hostname is archon.");
+    const prompt = loadPersonality(TEST_DIR, globalDir);
+    expect(prompt).toContain("archon");
+    expect(prompt).toContain("Global Knowledge");
+  });
+
+  it("skips GLOBAL.md when globalDir is not provided", () => {
+    writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Identity.");
+    const prompt = loadPersonality(TEST_DIR);
+    expect(prompt).not.toContain("Global Knowledge");
+  });
+
+  it("skips GLOBAL.md when file does not exist in globalDir", () => {
+    const globalDir = `${TEST_DIR}/global-empty`;
+    mkdirSync(globalDir, { recursive: true });
+    writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Identity.");
+    const prompt = loadPersonality(TEST_DIR, globalDir);
+    expect(prompt).not.toContain("Global Knowledge");
+  });
 });

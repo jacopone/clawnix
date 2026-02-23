@@ -71,7 +71,9 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
       }
     }
 
-    const wiredInstance = await wireAgentInstance(instance, agentConfig, mcpServerConfigs);
+    const wiredInstance = await wireAgentInstance(instance, agentConfig, mcpServerConfigs, {
+      stateDir: config.stateDir,
+    });
     instances.push(instance);
     wired.push(wiredInstance);
     console.log(`  agent "${name}" (/${routes[name].prefix}) — ${agentConfig.description}`);

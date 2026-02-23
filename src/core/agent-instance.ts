@@ -9,6 +9,7 @@ import { DevToolsPlugin } from "../tools/dev/index.js";
 import { SchedulerPlugin } from "../tools/scheduler/index.js";
 import { ObservePlugin } from "../tools/observe/index.js";
 import { HeartbeatPlugin } from "../tools/heartbeat/index.js";
+import { MemoryPlugin } from "../tools/memory/index.js";
 import { mkdirSync } from "node:fs";
 import type { AgentInstanceConfig } from "./config.js";
 
@@ -65,6 +66,7 @@ export async function wireAgentInstance(
   instance: AgentInstance,
   agentConfig: AgentInstanceConfig,
   mcpServerConfigs: Record<string, McpServerConfig>,
+  globalConfig?: { stateDir: string },
 ): Promise<WiredAgentInstance> {
   const { pluginHost } = instance;
 
@@ -87,6 +89,11 @@ export async function wireAgentInstance(
           workspaceDir: agentConfig.workspaceDir,
         });
         break;
+      case "memory":
+        await pluginHost.register(new MemoryPlugin(), {
+          workspaceDir: agentConfig.workspaceDir,
+        });
+        break;
       default:
         console.warn(`[agent-instance] Unknown tool "${toolName}" for agent "${instance.name}", skipping`);
     }
@@ -101,7 +108,7 @@ export async function wireAgentInstance(
 
   await pluginHost.initAll();
 
-  const agent = new Agent(agentConfig, instance.eventBus, instance.state, pluginHost);
+  const agent = new Agent(agentConfig, instance.eventBus, instance.state, pluginHost, globalConfig?.stateDir);
 
   return { agent, mcpManager };
 }

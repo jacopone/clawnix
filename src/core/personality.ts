@@ -11,11 +11,17 @@ function tryRead(path: string): string | null {
   return readFileSync(path, "utf-8").trim();
 }
 
-export function loadPersonality(workspaceDir: string): string {
+export function loadPersonality(workspaceDir: string, globalDir?: string): string {
   const identity = tryRead(join(workspaceDir, "IDENTITY.md"));
   if (!identity) return DEFAULT_PROMPT;
 
   const sections: string[] = [identity];
+
+  // Global memory shared across all agents
+  if (globalDir) {
+    const global = tryRead(join(globalDir, "GLOBAL.md"));
+    if (global) sections.push(`## Global Knowledge\n${global}`);
+  }
 
   const soul = tryRead(join(workspaceDir, "SOUL.md"));
   if (soul) sections.push(`## Values & Behavior\n${soul}`);

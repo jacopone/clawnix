@@ -22,9 +22,10 @@ export class Agent {
     private eventBus: EventBus,
     private state: StateStore,
     private pluginHost: PluginHost,
+    globalDir?: string,
   ) {
     const workspaceDir = config.workspaceDir ?? join(homedir(), ".config/clawnix");
-    this.systemPrompt = loadPersonality(workspaceDir);
+    this.systemPrompt = loadPersonality(workspaceDir, globalDir);
     const apiKey = readFileSync(config.ai.apiKeyFile, "utf-8").trim();
     this.claude = new ClaudeClient(apiKey, config.ai.model);
     this.conversations = new ConversationManager(state);
