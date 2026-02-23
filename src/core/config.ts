@@ -17,6 +17,11 @@ export interface AgentInstanceConfig {
     telegram?: { enable: boolean; botTokenFile?: string; allowedUsers?: string[] };
     webui?: { enable: boolean; port?: number; host?: string };
   };
+  filesystem?: {
+    readPaths?: string[];
+    writePaths?: string[];
+    blockedPatterns?: string[];
+  };
 }
 
 export interface ClawNixConfig {

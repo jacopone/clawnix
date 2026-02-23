@@ -99,6 +99,11 @@ let
         toolPolicies = agentCfg.security.toolPolicies;
       };
       workspaceDir = agentCfg.workspaceDir;
+      filesystem = {
+        readPaths = agentCfg.filesystem.readPaths;
+        writePaths = agentCfg.filesystem.writePaths;
+        blockedPatterns = agentCfg.filesystem.blockedPatterns;
+      };
     };
     stateDir = cfg.stateDir;
     router.model = cfg.router.model;
@@ -215,6 +220,24 @@ let
         default = "/var/lib/clawnix/workspace";
         description = "Directory containing personality files (IDENTITY.md, SOUL.md, USER.md, HEARTBEAT.md)";
       };
+
+      filesystem = {
+        readPaths = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ "/tmp" "/var/log" "/etc/nixos" ];
+          description = "Paths the agent can read (passed to observe plugin allowedReadPaths)";
+        };
+        writePaths = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Additional paths the agent can write to (added to systemd ReadWritePaths)";
+        };
+        blockedPatterns = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ".ssh" ".gnupg" "*.key" "*.pem" ];
+          description = "File patterns the agent cannot access";
+        };
+      };
     };
   };
 in
@@ -278,7 +301,8 @@ in
           StateDirectory = "clawnix/${name}";
           ProtectSystem = "strict";
           ProtectHome = "read-only";
-          ReadWritePaths = [ cfg.stateDir "${cfg.stateDir}/${name}" agentCfg.workspaceDir ];
+          ReadWritePaths = [ cfg.stateDir "${cfg.stateDir}/${name}" agentCfg.workspaceDir ]
+            ++ agentCfg.filesystem.writePaths;
           NoNewPrivileges = true;
           PrivateTmp = true;
           RestartSec = 10;

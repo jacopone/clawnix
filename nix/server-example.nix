@@ -60,6 +60,12 @@
       tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" ];
       workspaceDir = "/var/lib/clawnix/personal";
 
+      filesystem = {
+        readPaths = [ "/tmp" "/var/log" "/etc/nixos" ];
+        writePaths = [ "/var/lib/clawnix/documents" ];
+        blockedPatterns = [ ".ssh" ".gnupg" "*.key" "*.pem" ];
+      };
+
       security.toolPolicies = [
         # Browser: auto (read-only)
         { tool = "search_web"; effect = "allow"; }
