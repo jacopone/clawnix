@@ -5,6 +5,7 @@ import { ClaudeClient, type AgentResponse, type ApprovalGate } from "../ai/claud
 import { ConversationManager } from "../ai/context.js";
 import { loadPersonality } from "./personality.js";
 import { ApprovalStore } from "./approval.js";
+import { UsageTracker } from "./usage.js";
 import type { EventBus } from "./event-bus.js";
 import type { StateStore } from "./state.js";
 import type { PluginHost } from "./plugin-host.js";
@@ -19,6 +20,8 @@ export class Agent {
   private systemPrompt: string;
   private approvalStore: ApprovalStore;
   private approvalTimeoutMs: number;
+  private usageTracker: UsageTracker;
+  private agentName: string;
 
   constructor(
     private config: AgentConfig,
@@ -26,13 +29,17 @@ export class Agent {
     private state: StateStore,
     private pluginHost: PluginHost,
     globalDir?: string,
+    agentName?: string,
   ) {
+    this.agentName = agentName ?? "default";
     const workspaceDir = config.workspaceDir ?? join(homedir(), ".config/clawnix");
-    this.systemPrompt = loadPersonality(workspaceDir, globalDir);
+    const enabledTools = "tools" in config ? (config as AgentInstanceConfig).tools : undefined;
+    this.systemPrompt = loadPersonality(workspaceDir, globalDir, enabledTools);
     const apiKey = readFileSync(config.ai.apiKeyFile, "utf-8").trim();
     this.claude = new ClaudeClient(apiKey, config.ai.model);
     this.conversations = new ConversationManager(state);
     this.approvalStore = new ApprovalStore(state);
+    this.usageTracker = new UsageTracker(state.getDb());
     this.approvalTimeoutMs = ("security" in config ? (config as ClawNixConfig).security.approvalTimeoutSeconds : 300) * 1000;
 
     this.eventBus.on("message:incoming", (payload) => {
@@ -100,6 +107,7 @@ export class Agent {
     console.log("[agent] Calling Claude with", tools.length, "tools,", messages.length, "messages");
     const response = await this.claude.chat(messages, tools, this.systemPrompt, approvalGate);
     console.log("[agent] Claude responded:", response.text.substring(0, 100));
+    this.usageTracker.record(this.agentName, this.config.ai.model, response.usage.inputTokens, response.usage.outputTokens);
     this.conversations.addAssistantMessage(conversationId, response.text);
     this.eventBus.emit("message:response", {
       id: msg.id,

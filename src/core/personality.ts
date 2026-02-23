@@ -1,5 +1,5 @@
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { join, basename } from "node:path";
 
 const DEFAULT_PROMPT = `You are ClawNix, a personal AI agent running on a NixOS system.
 You help your user manage their NixOS system, development workflows, and daily tasks.
@@ -11,7 +11,30 @@ function tryRead(path: string): string | null {
   return readFileSync(path, "utf-8").trim();
 }
 
-export function loadPersonality(workspaceDir: string, globalDir?: string): string {
+/**
+ * Load skill markdown files from the workspace skills/ directory.
+ * Only loads skills whose filename matches an enabled tool name.
+ * e.g., skills/browser.md is loaded if "browser" is in enabledTools.
+ */
+function loadSkills(workspaceDir: string, enabledTools?: string[]): string[] {
+  const skillsDir = join(workspaceDir, "skills");
+  if (!existsSync(skillsDir)) return [];
+
+  const files = readdirSync(skillsDir).filter((f) => f.endsWith(".md"));
+  const sections: string[] = [];
+
+  for (const file of files) {
+    const toolName = basename(file, ".md");
+    // If enabledTools provided, only load matching skills
+    if (enabledTools && !enabledTools.includes(toolName)) continue;
+    const content = tryRead(join(skillsDir, file));
+    if (content) sections.push(`### ${toolName}\n${content}`);
+  }
+
+  return sections;
+}
+
+export function loadPersonality(workspaceDir: string, globalDir?: string, enabledTools?: string[]): string {
   const identity = tryRead(join(workspaceDir, "IDENTITY.md"));
   if (!identity) return DEFAULT_PROMPT;
 
@@ -28,6 +51,12 @@ export function loadPersonality(workspaceDir: string, globalDir?: string): strin
 
   const user = tryRead(join(workspaceDir, "USER.md"));
   if (user) sections.push(`## User Preferences\n${user}`);
+
+  // Load per-tool skills based on enabled tools
+  const skills = loadSkills(workspaceDir, enabledTools);
+  if (skills.length > 0) {
+    sections.push(`## Tool Skills\n${skills.join("\n\n")}`);
+  }
 
   const memory = tryRead(join(workspaceDir, "memory", "MEMORY.md"));
   if (memory) sections.push(`## Persistent Knowledge\n${memory}`);

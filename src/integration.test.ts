@@ -59,6 +59,7 @@ describe("ClawNix Integration", () => {
       chat: vi.fn().mockResolvedValue({
         text: "Integration test response",
         toolResults: [],
+        usage: { inputTokens: 200, outputTokens: 100 },
       }),
     };
 
@@ -104,6 +105,7 @@ describe("ClawNix Integration", () => {
       chat: vi.fn().mockResolvedValue({
         text: "Used the tool successfully",
         toolResults: [{ tool: "test_spy_tool", input: {}, output: "tool output" }],
+        usage: { inputTokens: 300, outputTokens: 150 },
       }),
     };
 

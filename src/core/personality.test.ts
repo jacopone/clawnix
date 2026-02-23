@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadPersonality } from "./personality.js";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
 
 const TEST_DIR = "/tmp/clawnix-personality-test";
 
@@ -64,5 +65,46 @@ describe("loadPersonality", () => {
     writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Identity.");
     const prompt = loadPersonality(TEST_DIR, globalDir);
     expect(prompt).not.toContain("Global Knowledge");
+  });
+
+  it("loads skills matching enabledTools", () => {
+    writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Base identity.");
+    mkdirSync(join(TEST_DIR, "skills"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "skills", "browser.md"), "Use browser for web pages.");
+    writeFileSync(join(TEST_DIR, "skills", "exec.md"), "Use exec for CLI commands.");
+    writeFileSync(join(TEST_DIR, "skills", "google.md"), "Use Google for email.");
+
+    const prompt = loadPersonality(TEST_DIR, undefined, ["browser", "exec"]);
+    expect(prompt).toContain("Use browser for web pages.");
+    expect(prompt).toContain("Use exec for CLI commands.");
+    expect(prompt).not.toContain("Use Google for email.");
+    expect(prompt).toContain("Tool Skills");
+  });
+
+  it("loads all skills when enabledTools is undefined", () => {
+    writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Base.");
+    mkdirSync(join(TEST_DIR, "skills"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "skills", "browser.md"), "Browser skill.");
+    writeFileSync(join(TEST_DIR, "skills", "exec.md"), "Exec skill.");
+
+    const prompt = loadPersonality(TEST_DIR);
+    expect(prompt).toContain("Browser skill.");
+    expect(prompt).toContain("Exec skill.");
+  });
+
+  it("places skills after user preferences and before memory", () => {
+    writeFileSync(`${TEST_DIR}/IDENTITY.md`, "Base.");
+    writeFileSync(`${TEST_DIR}/USER.md`, "User prefs.");
+    mkdirSync(join(TEST_DIR, "skills"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "skills", "exec.md"), "Exec skill.");
+    mkdirSync(join(TEST_DIR, "memory"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "memory", "MEMORY.md"), "Past knowledge.");
+
+    const prompt = loadPersonality(TEST_DIR, undefined, ["exec"]);
+    const userIdx = prompt.indexOf("User Preferences");
+    const skillIdx = prompt.indexOf("Tool Skills");
+    const memIdx = prompt.indexOf("Persistent Knowledge");
+    expect(skillIdx).toBeGreaterThan(userIdx);
+    expect(memIdx).toBeGreaterThan(skillIdx);
   });
 });

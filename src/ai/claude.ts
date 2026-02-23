@@ -15,9 +15,15 @@ export function formatToolsForAPI(tools: Tool[]): Anthropic.Tool[] {
   });
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface AgentResponse {
   text: string;
   toolResults: Array<{ tool: string; input: unknown; output: string }>;
+  usage: TokenUsage;
 }
 
 /** Called before tool execution. Returns "allow" to proceed or "deny" to block. */
@@ -40,6 +46,7 @@ export class ClaudeClient {
   ): Promise<AgentResponse> {
     const apiTools = formatToolsForAPI(tools);
     const toolResults: AgentResponse["toolResults"] = [];
+    const usage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
     let currentMessages = [...messages];
 
     while (true) {
@@ -51,12 +58,16 @@ export class ClaudeClient {
         tools: apiTools.length > 0 ? apiTools : undefined,
       });
 
+      // Accumulate token usage across all turns in the loop
+      usage.inputTokens += response.usage?.input_tokens ?? 0;
+      usage.outputTokens += response.usage?.output_tokens ?? 0;
+
       if (response.stop_reason !== "tool_use") {
         const text = response.content
           .filter((b): b is Anthropic.TextBlock => b.type === "text")
           .map((b) => b.text)
           .join("");
-        return { text, toolResults };
+        return { text, toolResults, usage };
       }
 
       const toolUseBlocks = response.content.filter(

@@ -19,8 +19,10 @@ import type { AgentRoute } from "./core/router.js";
 import { createAgentInstance, wireAgentInstance } from "./core/agent-instance.js";
 import type { AgentInstance, WiredAgentInstance } from "./core/agent-instance.js";
 import { AgentBroker } from "./core/agent-broker.js";
+import { UsageTracker } from "./core/usage.js";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
+import Database from "better-sqlite3";
 
 export function buildAgentRoutes(
   agents: Record<string, AgentInstanceConfig>,
@@ -50,11 +52,35 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
 
   mkdirSync(config.stateDir, { recursive: true });
 
+  // Shared DB for delegation audit (all agents share stateDir)
+  const sharedDb = new Database(`${config.stateDir}/clawnix-shared.db`);
+  sharedDb.pragma("journal_mode = WAL");
+  sharedDb.exec(`
+    CREATE TABLE IF NOT EXISTS delegation_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_agent TEXT NOT NULL,
+      to_agent TEXT NOT NULL,
+      task TEXT NOT NULL,
+      status TEXT NOT NULL,
+      result TEXT NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      timestamp TEXT NOT NULL
+    )
+  `);
+  const insertAudit = sharedDb.prepare(
+    "INSERT INTO delegation_audit (from_agent, to_agent, task, status, result, duration_ms, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  );
+
   const agents = config.agents!;
   const routes = buildAgentRoutes(agents);
   const router = new Router(routes);
 
-  const broker = new AgentBroker();
+  const broker = new AgentBroker({
+    maxDepth: 3,
+    auditRecorder: (record) => {
+      insertAudit.run(record.fromAgent, record.toAgent, record.task, record.status, record.result, record.durationMs, record.timestamp);
+    },
+  });
   const instances: AgentInstance[] = [];
   const wired: WiredAgentInstance[] = [];
 
@@ -110,6 +136,7 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
     for (const instance of instances) {
       await instance.shutdown();
     }
+    sharedDb.close();
     process.exit(0);
   };
 

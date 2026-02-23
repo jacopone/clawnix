@@ -49,7 +49,7 @@ describe("Agent", () => {
 
     // Mock the Claude client to avoid real API calls
     (agent as any).claude = {
-      chat: vi.fn().mockResolvedValue({ text: "Hello from Claude!", toolResults: [] }),
+      chat: vi.fn().mockResolvedValue({ text: "Hello from Claude!", toolResults: [], usage: { inputTokens: 100, outputTokens: 50 } }),
     };
 
     bus.emit("message:incoming", {

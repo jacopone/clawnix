@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { EventBus } from "../../core/event-bus.js";
 import type { StateStore } from "../../core/state.js";
 import { ApprovalStore } from "../../core/approval.js";
+import { UsageTracker } from "../../core/usage.js";
 import { randomUUID } from "node:crypto";
 import type { ClawNixMessage } from "../../core/types.js";
 
@@ -11,8 +12,19 @@ export function registerRoutes(
   state: StateStore,
 ): void {
   const approvals = new ApprovalStore(state);
+  const usageTracker = new UsageTracker(state.getDb());
 
   app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
+
+  app.get<{ Querystring: { days?: string } }>("/api/usage", async (req) => {
+    const days = parseInt(req.query.days ?? "30", 10);
+    return usageTracker.summary(days);
+  });
+
+  app.get<{ Querystring: { limit?: string } }>("/api/usage/recent", async (req) => {
+    const limit = parseInt(req.query.limit ?? "50", 10);
+    return usageTracker.recent(limit);
+  });
 
   app.post<{ Body: { text: string } }>("/api/chat", async (req) => {
     const msg: ClawNixMessage = {

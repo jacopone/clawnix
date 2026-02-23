@@ -50,6 +50,11 @@ export class StateStore {
     this.set(namespace, key, JSON.stringify(value));
   }
 
+  /** Expose underlying Database for shared tables (e.g. usage tracking). */
+  getDb(): Database.Database {
+    return this.db;
+  }
+
   close(): void {
     this.db.close();
   }

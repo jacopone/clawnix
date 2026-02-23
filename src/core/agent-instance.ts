@@ -143,7 +143,7 @@ export async function wireAgentInstance(
 
   await pluginHost.initAll();
 
-  const agent = new Agent(agentConfig, instance.eventBus, instance.state, pluginHost, globalConfig?.stateDir);
+  const agent = new Agent(agentConfig, instance.eventBus, instance.state, pluginHost, globalConfig?.stateDir, instance.name);
 
   return { agent, mcpManager };
 }
