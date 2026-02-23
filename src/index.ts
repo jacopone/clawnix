@@ -18,6 +18,8 @@ import { Router } from "./core/router.js";
 import type { AgentRoute } from "./core/router.js";
 import { createAgentInstance, wireAgentInstance } from "./core/agent-instance.js";
 import type { AgentInstance, WiredAgentInstance } from "./core/agent-instance.js";
+import { AgentBroker } from "./core/agent-broker.js";
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 
 export function buildAgentRoutes(
@@ -52,6 +54,7 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
   const routes = buildAgentRoutes(agents);
   const router = new Router(routes);
 
+  const broker = new AgentBroker();
   const instances: AgentInstance[] = [];
   const wired: WiredAgentInstance[] = [];
 
@@ -73,7 +76,21 @@ async function startMultiAgent(config: ReturnType<typeof loadConfig>) {
 
     const wiredInstance = await wireAgentInstance(instance, agentConfig, mcpServerConfigs, {
       stateDir: config.stateDir,
+    }, broker);
+
+    // Register delegation handler so other agents can delegate tasks to this agent
+    broker.registerAgent(name, async (request) => {
+      const msg = {
+        id: randomUUID(),
+        channel: "delegation",
+        sender: request.from,
+        text: `[Delegated from ${request.from}] ${request.task}${request.context ? `\nContext: ${request.context}` : ""}`,
+        timestamp: new Date(),
+      };
+      instance.eventBus.emit("message:incoming", msg);
+      return `Task delegated to ${name}. The agent will process it asynchronously.`;
     });
+
     instances.push(instance);
     wired.push(wiredInstance);
     console.log(`  agent "${name}" (/${routes[name].prefix}) — ${agentConfig.description}`);

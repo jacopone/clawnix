@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createAgentInstance, wireAgentInstance } from "./agent-instance.js";
+import { AgentBroker } from "./agent-broker.js";
 
 describe("createAgentInstance", () => {
   it("creates an instance with the given name and config", async () => {
@@ -198,6 +199,61 @@ describe("wireAgentInstance", () => {
     const toolNames = instance.pluginHost.getTools().map((t) => t.name);
     // scheduler tools should still be registered despite the unknown tool
     expect(toolNames).toContain("clawnix_schedule_task");
+
+    await mcpManager.disconnectAll();
+    await instance.shutdown();
+  });
+
+  it("registers delegation plugin tools when 'delegation' is in tools list and broker is provided", async () => {
+    const broker = new AgentBroker();
+    const instance = await createAgentInstance("delegator", {
+      description: "agent with delegation",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["delegation"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-delegation",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const { mcpManager } = await wireAgentInstance(instance, {
+      description: "agent with delegation",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["delegation"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-delegation",
+      toolPolicies: [],
+    }, {}, undefined, broker);
+
+    const toolNames = instance.pluginHost.getTools().map((t) => t.name);
+    expect(toolNames).toContain("clawnix_delegate");
+    expect(toolNames).toContain("clawnix_list_agents");
+
+    await mcpManager.disconnectAll();
+    await instance.shutdown();
+  });
+
+  it("skips delegation plugin when broker is not provided", async () => {
+    const instance = await createAgentInstance("no-broker", {
+      description: "agent without broker",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["delegation"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-no-broker",
+      toolPolicies: [],
+    }, { stateDir: "/tmp/clawnix-wire-test" });
+
+    const { mcpManager } = await wireAgentInstance(instance, {
+      description: "agent without broker",
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "/dev/null" },
+      tools: ["delegation"],
+      mcp: { servers: [] },
+      workspaceDir: "/tmp/clawnix-test-wire-no-broker",
+      toolPolicies: [],
+    }, {});
+
+    const toolNames = instance.pluginHost.getTools().map((t) => t.name);
+    expect(toolNames).not.toContain("clawnix_delegate");
+    expect(toolNames).not.toContain("clawnix_list_agents");
 
     await mcpManager.disconnectAll();
     await instance.shutdown();

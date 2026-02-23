@@ -11,8 +11,10 @@ import { ObservePlugin } from "../tools/observe/index.js";
 import { HeartbeatPlugin } from "../tools/heartbeat/index.js";
 import { MemoryPlugin } from "../tools/memory/index.js";
 import { DirectivesPlugin } from "../tools/directives/index.js";
+import { DelegationPlugin } from "../tools/delegation/index.js";
 import { mkdirSync } from "node:fs";
 import type { AgentInstanceConfig } from "./config.js";
+import type { AgentBroker } from "./agent-broker.js";
 
 export interface AgentInstance {
   name: string;
@@ -68,6 +70,7 @@ export async function wireAgentInstance(
   agentConfig: AgentInstanceConfig,
   mcpServerConfigs: Record<string, McpServerConfig>,
   globalConfig?: { stateDir: string },
+  broker?: AgentBroker,
 ): Promise<WiredAgentInstance> {
   const { pluginHost } = instance;
 
@@ -97,6 +100,14 @@ export async function wireAgentInstance(
         break;
       case "directives":
         await pluginHost.register(new DirectivesPlugin(), {});
+        break;
+      case "delegation":
+        if (broker) {
+          await pluginHost.register(new DelegationPlugin(), {
+            agentName: instance.name,
+            broker,
+          });
+        }
         break;
       default:
         console.warn(`[agent-instance] Unknown tool "${toolName}" for agent "${instance.name}", skipping`);
