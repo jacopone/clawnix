@@ -91,7 +91,7 @@ export interface ClawNixConfig {
 }
 
 const DEFAULT_CONFIG: ClawNixConfig = {
-  ai: { provider: "claude", model: "claude-sonnet-4-5-20250929", apiKeyFile: "" },
+  ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: "" },
   channels: {
     telegram: { enable: false },
     webui: { enable: false, port: 3333 },

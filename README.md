@@ -1,138 +1,138 @@
 # ClawNix
 
-NixOS-native personal AI agent platform. Version 0.2.0.
+Self-evolving AI agent platform for NixOS. Agents are NixOS modules. Capabilities are native plugins. The system can modify its own infrastructure with human approval and atomic rollback.
 
-## What is ClawNix
+## What ClawNix does
 
-ClawNix is a multi-agent AI platform that treats NixOS as a first-class deployment target. Define named agents in Nix, each with its own channels (terminal, Telegram, web UI), tools, MCP servers, and security policies. A natural language router dispatches incoming requests to the appropriate agent. Each agent runs as a hardened systemd service with `DynamicUser`, filesystem isolation, and watchdog monitoring.
+ClawNix defines AI agents as NixOS services. Each agent has its own channels (Telegram, web UI, terminal), tools, security policies, and workspace. A natural language router dispatches incoming messages to the right agent. Agents delegate tasks to each other via an AgentBroker with audit trail and depth limiting.
 
-ClawNix is not a fork of or wrapper around [OpenClaw](https://github.com/openclaw/openclaw) or [PicoClaw](https://github.com/sipeed/picoclaw). It is its own codebase designed around NixOS declarative configuration as a core differentiator. See [How ClawNix compares](#how-clawnix-compares) for a detailed comparison.
+The key differentiator: NixOS declarative configuration + atomic rollbacks makes it safe for an agent to propose changes to its own infrastructure. No other OS provides this safety net natively.
 
-## Capabilities
+## Architecture
 
-### Communication channels
-- **Telegram** — single bot, router dispatches to correct agent. Voice messages via STT/TTS. Inline keyboard buttons for tool approvals.
-- **Web UI** — per-agent Fastify dashboard, bindable to Tailscale interface only
-- **Terminal** — interactive REPL for local development
+```
+┌─────────────────────────────────────────────────┐
+│  NixOS Module (services.clawnix)                │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ personal │ │  devops  │ │researcher│ ...     │
+│  │ (systemd)│ │ (systemd)│ │ (systemd)│         │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘        │
+│       │             │            │               │
+│  ┌────┴─────────────┴────────────┴──────┐       │
+│  │         Natural Language Router       │       │
+│  └────┬─────────────┬───────────────────┘       │
+│       │             │                            │
+│  ┌────┴────┐  ┌─────┴────┐                      │
+│  │Telegram │  │  Web UI  │                      │
+│  │(grammY) │  │(Fastify) │                      │
+│  └─────────┘  └──────────┘                      │
+└─────────────────────────────────────────────────┘
+```
 
-### Built-in tools
-| Tool | Description |
-|------|-------------|
-| `nixos` | System status, generation diffs, option queries, flake check, auto-update (flake update + rebuild + rollback) |
-| `observe` | Read files within allowed paths, run approved commands |
-| `dev` | Code search, file operations for development tasks |
-| `scheduler` | Persistent scheduled tasks with cron expressions |
-| `heartbeat` | Periodic task execution from `HEARTBEAT.md` |
-| `memory` | Per-agent persistent memory (`MEMORY.md`) with shared `GLOBAL.md` |
-| `directives` | Standing "when X happens, do Y" instructions with cron and interval triggers |
-| `delegation` | Agent-to-agent task routing via AgentBroker |
-| `watchdog` | systemd `sd_notify` ping + journal health queries |
+Each agent is a hardened systemd service with `DynamicUser`, `ProtectSystem=strict`, filesystem isolation, and watchdog monitoring.
 
-### MCP tool servers
-External capabilities via [Model Context Protocol](https://modelcontextprotocol.io/) servers. Each is a standalone Python package communicating via stdio.
+## Native plugins
 
-| Server | Tools | Description |
+All capabilities are built-in TypeScript plugins. No external MCP servers needed.
+
+| Plugin | Tools | Description |
 |--------|-------|-------------|
-| mcp-browser | `search_web`, `read_page` | Web search via DuckDuckGo, page content extraction |
-| mcp-documents | `create_presentation`, `create_spreadsheet`, `create_pdf` | PPTX, XLSX, PDF creation |
-| mcp-email | `list_emails`, `read_email`, `draft_reply`, `send_email` | IMAP inbox reading, draft-then-send workflow |
-| mcp-calendar | `list_events`, `create_event`, `find_free_time` | Google Calendar integration via OAuth2 |
-| mcp-playwright | `navigate`, `click`, `fill_form`, `screenshot`, `extract_data` | Headless Chromium browser automation via Playwright |
+| `nixos` | `system_status`, `generations`, `generation_diff`, `nixos_option`, `flake_check`, `flake_update`, `system_rebuild`, `system_rollback` | NixOS system management |
+| `observe` | `read_file`, `processes`, `resources`, `journal`, `network` | System monitoring within allowed paths |
+| `exec` | `exec` | Run CLI commands via `nix shell nixpkgs#<package>`. Allowlisted packages auto-approved, unknown trigger approval. |
+| `google` | `gmail_search`, `gmail_read`, `gmail_send`, `gmail_draft`, `calendar_list`, `calendar_create`, `calendar_freebusy`, `drive_search` | Google Workspace via [gogcli](https://github.com/steipete/gogcli) |
+| `browser` | `browser_open`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_fill`, `browser_screenshot`, `browser_evaluate` | Headless browser via [BrowserClaw](https://github.com/nicobailon/browserclaw) |
+| `evolve` | `evolve` | Self-modify NixOS config: propose changes, validate, rebuild, auto-rollback on failure |
+| `dev` | `git_status`, `run_tests`, `claude_sessions` | Development workflow tools |
+| `scheduler` | `schedule_task`, `list_scheduled`, `remove_scheduled` | Persistent cron-based task scheduling |
+| `heartbeat` | Periodic execution from `HEARTBEAT.md` | Proactive task execution |
+| `memory` | `remember`, `recall`, `forget` | Per-agent persistent memory with shared global knowledge |
+| `directives` | `create_directive`, `list_directives`, `remove_directive` | Standing "when X, do Y" instructions with cron triggers |
+| `delegation` | `delegate`, `list_agents` | Agent-to-agent task routing with audit trail |
+| `watchdog` | `sd_notify`, `journal_health` | systemd watchdog integration |
 
-### Proactive behavior
-- **Standing directives** — persistent instructions that trigger on cron schedules or intervals. Example: "Every morning at 9am, generate a briefing with today's calendar, pending tasks, and system status."
-- **Morning briefings** — the personal agent auto-creates a daily directive on first interaction
-- **NixOS auto-updates** — the devops agent runs weekly `flake update` + `rebuild`, with automatic rollback on failure
-- **Heartbeat tasks** — periodic execution of instructions from workspace files
+## Self-evolution
 
-### Multi-agent delegation
-Agents delegate tasks to specialists via `clawnix_delegate`. The AgentBroker routes requests point-to-point (the EventBus handles broadcast). A personal agent can ask the researcher to find articles, or the devops agent to check server health.
+The `evolve` plugin lets agents propose NixOS configuration changes:
 
-### Security model
+1. Agent calls `clawnix_evolve` with `action: "propose"`, provides Nix code and description
+2. Tool writes to a scoped overlay file (`/etc/nixos/clawnix-evolved.nix`)
+3. Validates with `nix flake check`
+4. Triggers approval request (Telegram inline buttons or web UI)
+5. On approval: runs `nixos-rebuild switch`
+6. On failure: auto-reverts overlay and rolls back to previous generation
+
+Agents can only modify a dedicated overlay file, not arbitrary NixOS config. The rebuild runs via a sudo rule scoped to `nixos-rebuild`.
+
+## Exec tool: nixpkgs as tool layer
+
+The `exec` plugin gives agents access to 100,000+ nixpkgs packages via ephemeral `nix shell` environments:
+
+```nix
+agents.personal.exec = {
+  allowedPackages = [ "pandoc" "libreoffice" "ddgr" "jq" "ripgrep" ];
+  defaultTimeout = 60;
+};
+```
+
+- Allowlisted packages execute without approval
+- Unknown packages trigger the approval workflow
+- Commands run inside the agent's systemd sandbox
+- Web search via `ddgr` (DuckDuckGo CLI), documents via `pandoc`/`libreoffice`
+
+## Skills system
+
+Each agent loads skill files from its workspace (`skills/{toolname}.md`), filtered by its enabled tools. Skills teach agents how to use their tools effectively without bloating other agents' context windows.
+
+Example skill files are in `examples/skills/`. Copy to your agent's workspace:
+
+```bash
+cp examples/skills/browser.md /var/lib/clawnix/personal/skills/
+cp examples/skills/google.md /var/lib/clawnix/personal/skills/
+```
+
+## Security model
+
 - **Network isolation** — zero exposed ports. Tailscale mesh VPN for remote access. Web UI bound to Tailscale interface only.
 - **Process isolation** — each agent runs as a separate systemd service with `DynamicUser=yes`, `ProtectSystem=strict`, `ProtectHome=read-only`.
-- **Filesystem policies** — per-agent `readPaths`, `writePaths`, and `blockedPatterns`. Write paths added to systemd `ReadWritePaths`.
-- **Tool policies** — three-tier autonomy per tool: `allow` (auto-execute), `approve` (require human confirmation via Telegram inline buttons), `deny` (block).
-- **systemd watchdog** — `WatchdogSec=60` with `sd_notify` ping every 15s. Hung agents restart automatically.
-- **Secrets** — sops-nix encrypted at rest, decrypted at runtime. API keys, bot tokens, and credentials never in plaintext config.
+- **Filesystem policies** — per-agent `readPaths`, `writePaths`, and `blockedPatterns`.
+- **Tool policies** — three-tier autonomy per tool: `allow` (auto-execute), `approve` (require human confirmation), `deny` (block).
+- **Approval workflow** — tools with `effect: "approve"` block the agent loop until the user decides via Telegram inline buttons or web UI.
+- **Delegation audit** — every agent-to-agent delegation is logged with timing, status, and result. Max depth of 3 prevents runaway chains.
+- **Secrets** — sops-nix encrypted at rest, decrypted at runtime.
 
-## How ClawNix compares
+## Usage tracking
 
-ClawNix occupies a specific niche: NixOS-native, multi-agent, declarative deployment. Two other open-source personal AI agent platforms solve different problems:
+Every Claude API call records input/output tokens per agent. Query via the web UI:
 
-### OpenClaw
-
-[OpenClaw](https://github.com/openclaw/openclaw) (by Peter Steinberger) is the most popular open-source personal AI assistant. It provides a Gateway architecture with 15+ channel integrations (WhatsApp, Telegram, Slack, Discord, Signal, iMessage, Teams, Matrix, and more), voice interaction, browser automation, and a visual canvas workspace. Written in TypeScript/Node.js, deployable via Docker, Nix, or systemd.
-
-**Where OpenClaw excels:**
-- Channel coverage (15+ messaging platforms vs ClawNix's 2)
-- Mature ecosystem with large community (100k+ GitHub stars)
-- Cross-platform support (macOS, iOS, Android, Linux)
-- Visual canvas and A2UI integration
-
-**Where ClawNix differs:**
-- NixOS-native deployment with declarative agent definitions in Nix configuration
-- Multi-agent architecture with natural language routing and inter-agent delegation
-- Per-agent systemd service isolation (`DynamicUser`, `ProtectSystem=strict`, filesystem policies)
-- NixOS system management tools (generation diffs, auto-updates with rollback)
-- Standing directives with cron/interval triggers for proactive behavior
-- Reproducible deployment — `nixos-rebuild switch` deploys everything
-
-If you want broad platform support and the largest ecosystem, use OpenClaw. If you run NixOS and want declarative multi-agent deployment with system-level integration, ClawNix fills that gap.
-
-### PicoClaw
-
-[PicoClaw](https://github.com/sipeed/picoclaw) is an ultra-lightweight AI agent written in Go, designed for resource-constrained hardware. It runs on less than 10MB RAM with sub-second startup, validated on RISC-V (MaixCAM) and Raspberry Pi Zero. Single binary, no runtime dependencies.
-
-**Where PicoClaw excels:**
-- Minimal resource footprint (10MB RAM vs ClawNix's ~200MB per agent)
-- Runs on $10 hardware (RISC-V, ARM, Raspberry Pi Zero)
-- Single binary deployment, no container or Nix required
-- Sub-second startup time
-
-**Where ClawNix differs:**
-- Multi-agent architecture (PicoClaw is single-agent)
-- Deep NixOS integration (system management, declarative config, generation rollback)
-- MCP tool servers for extensible capabilities
-- Process-level security isolation via systemd
-- Standing directives and proactive behavior
-
-If you need an AI agent on constrained hardware or want the simplest possible deployment, use PicoClaw. If you want multiple specialized agents with NixOS system management, ClawNix is the better fit.
-
-### Summary
-
-| | ClawNix | OpenClaw | PicoClaw |
-|---|---------|----------|----------|
-| Language | TypeScript | TypeScript | Go |
-| Deployment | NixOS module | Docker/Nix/systemd | Single binary |
-| Agents | Multi-agent with router | Single gateway | Single agent |
-| Channels | Telegram, Web UI, Terminal | 15+ platforms | Telegram, Discord, QQ, DingTalk |
-| System integration | NixOS-native (generations, rebuild, rollback) | Cross-platform | Minimal |
-| Resource usage | ~200MB per agent | ~1GB | <10MB |
-| Security | systemd DynamicUser + ProtectSystem + filesystem policies | Gateway-level | Process-level |
-| Proactive behavior | Standing directives (cron/interval) | Cron jobs, webhooks | Cron reminders |
-| Inter-agent | Delegation via AgentBroker | N/A | N/A |
+- `GET /api/usage?days=30` — summary by agent
+- `GET /api/usage/recent?limit=50` — recent records
 
 ## Quick start
 
 ```bash
-# Enter dev environment
 nix develop
-
-# Install dependencies
 npm install
-
-# Build
 npm run build
-
-# Run
-npm start
-
-# Development mode with hot reload
-npm run dev
+npm start       # or: npm run dev
 ```
 
 ## NixOS module
+
+```nix
+{
+  inputs.clawnix.url = "github:jacopone/clawnix";
+
+  outputs = { self, nixpkgs, clawnix, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        clawnix.nixosModules.default
+        ./configuration.nix
+      ];
+    };
+  };
+}
+```
 
 Declare agents under `services.clawnix.agents.<name>`:
 
@@ -140,107 +140,85 @@ Declare agents under `services.clawnix.agents.<name>`:
 services.clawnix = {
   enable = true;
   stateDir = "/var/lib/clawnix";
+  tailscaleInterface = "tailscale0";
 
   agents.personal = {
-    description = "calendar, reminders, daily tasks, general questions";
-    ai = {
-      model = "claude-sonnet-4-6";
-      apiKeyFile = config.sops.secrets."clawnix/anthropic-api-key".path;
-    };
+    description = "calendar, reminders, daily tasks";
+    ai.model = "claude-sonnet-4-6";
+    ai.apiKeyFile = config.sops.secrets."clawnix/anthropic-api-key".path;
     channels.telegram = {
       enable = true;
       botTokenFile = config.sops.secrets."clawnix/telegram-bot-token".path;
     };
     channels.webui.enable = true;
-    tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" "delegation" "watchdog" ];
+    tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory"
+              "directives" "delegation" "watchdog" "exec" "google" "browser" ];
     workspaceDir = "/var/lib/clawnix/personal";
+    exec.allowedPackages = [ "pandoc" "libreoffice" "ddgr" ];
+    security.toolPolicies = [
+      { tool = "clawnix_exec"; effect = "allow"; }
+      { tool = "clawnix_gmail_send"; effect = "approve"; }
+      { tool = "clawnix_calendar_create"; effect = "approve"; }
+      { tool = "clawnix_browser_click"; effect = "approve"; }
+    ];
+  };
+
+  agents.devops = {
+    description = "server health, NixOS, deployments, self-evolve";
+    ai.model = "claude-sonnet-4-6";
+    ai.apiKeyFile = config.sops.secrets."clawnix/anthropic-api-key".path;
+    tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory"
+              "directives" "delegation" "watchdog" "evolve" ];
+    security.toolPolicies = [
+      { tool = "clawnix_system_rebuild"; effect = "approve"; }
+      { tool = "clawnix_evolve"; effect = "approve"; }
+    ];
   };
 };
 ```
 
-Each agent runs as a separate systemd service (`clawnix-<name>`). Global options include `tailscaleInterface` (bind web UI to Tailscale only), `secretsGroup` (sops-nix group access), and `mcp.servers` (shared across all agents).
+See `nix/server-example.nix` for a complete 4-agent configuration.
 
-## MCP server configuration
+## How ClawNix compares
 
-```nix
-services.clawnix.mcp.servers = {
-  browser.command = "${self.packages.${pkgs.system}.mcp-browser}/bin/clawnix-mcp-browser";
-  documents = {
-    command = "${self.packages.${pkgs.system}.mcp-documents}/bin/clawnix-mcp-documents";
-    env.CLAWNIX_DOCUMENTS_DIR = "/var/lib/clawnix/documents";
-  };
-  email = {
-    command = "${self.packages.${pkgs.system}.mcp-email}/bin/clawnix-mcp-email";
-    env.CLAWNIX_EMAIL_USER_FILE = config.sops.secrets."clawnix/email-user".path;
-    env.CLAWNIX_EMAIL_PASS_FILE = config.sops.secrets."clawnix/email-pass".path;
-  };
-  calendar = {
-    command = "${self.packages.${pkgs.system}.mcp-calendar}/bin/clawnix-mcp-calendar";
-    env.CLAWNIX_GOOGLE_CREDENTIALS_FILE = config.sops.secrets."clawnix/google-creds".path;
-    env.CLAWNIX_GOOGLE_TOKEN_FILE = "/var/lib/clawnix/google-token.json";
-  };
-  playwright = {
-    command = "${self.packages.${pkgs.system}.mcp-playwright}/bin/clawnix-mcp-playwright";
-  };
-};
-```
+| | ClawNix | OpenClaw | PicoClaw |
+|---|---------|----------|----------|
+| Language | TypeScript | TypeScript | Go |
+| Deployment | NixOS module | Docker/Nix/systemd | Single binary |
+| Agents | Multi-agent with router | Single gateway | Single agent |
+| Channels | Telegram, Web UI, Terminal | 15+ platforms | Telegram, Discord |
+| Tools | 13 native plugins + nixpkgs exec | MCP servers + skills | Built-in |
+| System integration | NixOS-native (self-evolve, rebuild, rollback) | Cross-platform | Minimal |
+| Security | systemd DynamicUser + filesystem policies + tool approval | Gateway-level | Process-level |
+| Inter-agent | Delegation with audit trail | N/A | N/A |
 
-## Multi-agent setup
-
-Split responsibilities across specialized agents. Each agent has its own tools, MCP servers, memory, and tool policies. The natural language router dispatches Telegram messages to the correct agent. Agents delegate tasks to each other via the AgentBroker.
-
-See `examples/workspaces/` for personality file templates and `nix/server-example.nix` for a 4-agent configuration (personal, devops, researcher, support).
-
-## Filesystem access control
-
-Per-agent filesystem policies restrict what each agent can read and write:
-
-```nix
-agents.devops.filesystem = {
-  readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
-  writePaths = [ ];
-  blockedPatterns = [ ".ssh" ".gnupg" "*.key" "*.pem" ];
-};
-```
-
-Read paths are passed to the observe plugin. Write paths are added to systemd `ReadWritePaths`. Blocked patterns prevent access to sensitive files.
-
-## Deployment options
-
-### Headless server (recommended)
-A dedicated laptop operating headless with lid closed. Use Tailscale for remote access and sops-nix for secrets management. See `nix/server-example.nix` for a complete 4-agent configuration.
-
-### Desktop (daily-driver)
-ClawNix runs on a desktop NixOS machine used for daily work. Each agent is process-isolated via systemd `DynamicUser` and cannot access your home directory. Recommendations for desktop use:
-- Start with a single `personal` agent
-- Skip the NixOS auto-update tools (or set `effect = "deny"`) — no sudo rules needed
-- Use Telegram + web UI channels
-- Add agents and tools as you get comfortable
+**Use OpenClaw** if you want broad platform support and the largest ecosystem.
+**Use PicoClaw** if you need an agent on constrained hardware.
+**Use ClawNix** if you run NixOS and want declarative multi-agent deployment with self-evolving infrastructure.
 
 ## Project structure
 
-- `src/core/` -- Agent runtime, event bus, state store, plugin host, MCP client, router, agent broker
-- `src/ai/` -- Claude API integration, context management, summarization
-- `src/channels/` -- Terminal, Telegram (with inline buttons), and web UI frontends
-- `src/tools/` -- Plugin modules (NixOS, scheduler, observe, dev, heartbeat, memory, directives, delegation, watchdog)
-- `mcp-servers/` -- Python MCP tool servers (browser, documents, email, calendar, playwright)
-- `examples/` -- Workspace personality files and briefing templates
-- `nix/` -- NixOS module, server example, and MCP server packaging
-- `flake.nix` -- Nix packages (6 total) and dev shell
+```
+src/core/       Agent runtime, event bus, state store, plugin host, router, broker, usage tracking
+src/ai/         Claude API integration, context management, summarization
+src/channels/   Terminal, Telegram (inline buttons), web UI
+src/tools/      Native plugins: nixos, observe, dev, scheduler, heartbeat, memory,
+                directives, delegation, watchdog, exec, google, browser, evolve
+examples/       Skill files and workspace templates
+nix/            NixOS module, server example, gogcli derivation
+```
 
 ## Tech stack
 
 - TypeScript, Node.js 22
-- Anthropic Claude SDK (AI backbone)
-- MCP SDK (tool protocol)
-- grammY (Telegram bot with InlineKeyboard)
-- Fastify (web UI server)
-- better-sqlite3 (state persistence)
+- Anthropic Claude SDK
+- grammY (Telegram bot)
+- Fastify (web UI)
+- better-sqlite3 (state + usage tracking)
+- BrowserClaw (headless browser)
+- gogcli (Google Workspace CLI)
 - Zod (schema validation)
 - cron (scheduler and directives)
-- FastMCP (Python MCP tool servers)
-- Playwright (headless browser automation)
-- Google Calendar API (calendar integration)
 - Nix flake + NixOS module
 
 ## License

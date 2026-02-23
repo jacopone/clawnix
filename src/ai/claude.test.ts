@@ -24,7 +24,7 @@ describe("formatToolsForAPI", () => {
 
 describe("ClaudeClient", () => {
   it("constructs with API key and model", () => {
-    const client = new ClaudeClient("test-key", "claude-sonnet-4-5-20250929");
+    const client = new ClaudeClient("test-key", "claude-sonnet-4-6");
     expect(client).toBeDefined();
   });
 });

@@ -143,7 +143,7 @@ let
         };
         model = lib.mkOption {
           type = lib.types.str;
-          default = "claude-sonnet-4-5-20250929";
+          default = "claude-sonnet-4-6";
           description = "AI model identifier";
         };
         apiKeyFile = lib.mkOption {
@@ -317,7 +317,7 @@ in
 
     router.model = lib.mkOption {
       type = lib.types.str;
-      default = "claude-sonnet-4-5-20250929";
+      default = "claude-sonnet-4-6";
       description = "Model used for routing requests across agents";
     };
 

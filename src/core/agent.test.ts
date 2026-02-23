@@ -21,7 +21,7 @@ describe("Agent", () => {
     host = new PluginHost(bus, state);
     writeFileSync(FAKE_KEY_FILE, "test-api-key");
     config = {
-      ai: { provider: "claude", model: "claude-sonnet-4-5-20250929", apiKeyFile: FAKE_KEY_FILE },
+      ai: { provider: "claude", model: "claude-sonnet-4-6", apiKeyFile: FAKE_KEY_FILE },
       channels: { telegram: { enable: false }, webui: { enable: false, port: 3333 } },
       voice: { stt: { provider: "claude" }, tts: { provider: "none" } },
       tools: { nixos: { enable: false }, dev: { enable: false } },
