@@ -12,6 +12,7 @@ import { HeartbeatPlugin } from "../tools/heartbeat/index.js";
 import { MemoryPlugin } from "../tools/memory/index.js";
 import { DirectivesPlugin } from "../tools/directives/index.js";
 import { DelegationPlugin } from "../tools/delegation/index.js";
+import { WatchdogPlugin } from "../tools/watchdog/index.js";
 import { mkdirSync } from "node:fs";
 import type { AgentInstanceConfig } from "./config.js";
 import type { AgentBroker } from "./agent-broker.js";
@@ -108,6 +109,9 @@ export async function wireAgentInstance(
             broker,
           });
         }
+        break;
+      case "watchdog":
+        await pluginHost.register(new WatchdogPlugin(), {});
         break;
       default:
         console.warn(`[agent-instance] Unknown tool "${toolName}" for agent "${instance.name}", skipping`);

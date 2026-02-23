@@ -65,7 +65,7 @@
         botTokenFile = "/run/secrets/telegram-bot-token";
       };
       channels.webui.enable = true;
-      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" ];
+      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" "watchdog" ];
       workspaceDir = "/var/lib/clawnix/personal";
 
       filesystem = {
@@ -105,7 +105,7 @@
         enable = true;
         port = 3334;
       };
-      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" ];
+      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" "watchdog" ];
       workspaceDir = "/var/lib/clawnix/devops";
       filesystem.readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
 
@@ -123,7 +123,7 @@
         apiKeyFile = "/run/secrets/anthropic-api-key";
       };
       channels.telegram.enable = true;
-      tools = [ "scheduler" "heartbeat" "memory" "directives" ];
+      tools = [ "scheduler" "heartbeat" "memory" "directives" "watchdog" ];
       workspaceDir = "/var/lib/clawnix/researcher";
     };
 
@@ -134,7 +134,7 @@
         apiKeyFile = "/run/secrets/anthropic-api-key";
       };
       channels.telegram.enable = true;
-      tools = [ "scheduler" "memory" "directives" ];
+      tools = [ "scheduler" "memory" "directives" "watchdog" ];
       workspaceDir = "/var/lib/clawnix/support";
 
       security.toolPolicies = [

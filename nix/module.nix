@@ -307,6 +307,9 @@ in
           PrivateTmp = true;
           RestartSec = 10;
           Restart = "on-failure";
+          WatchdogSec = 60;
+          NotifyAccess = "main";
+          Type = "notify";
         } // lib.optionalAttrs (cfg.secretsGroup != null) {
           SupplementaryGroups = [ cfg.secretsGroup ];
         };
