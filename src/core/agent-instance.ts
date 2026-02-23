@@ -10,6 +10,7 @@ import { SchedulerPlugin } from "../tools/scheduler/index.js";
 import { ObservePlugin } from "../tools/observe/index.js";
 import { HeartbeatPlugin } from "../tools/heartbeat/index.js";
 import { MemoryPlugin } from "../tools/memory/index.js";
+import { DirectivesPlugin } from "../tools/directives/index.js";
 import { mkdirSync } from "node:fs";
 import type { AgentInstanceConfig } from "./config.js";
 
@@ -93,6 +94,9 @@ export async function wireAgentInstance(
         await pluginHost.register(new MemoryPlugin(), {
           workspaceDir: agentConfig.workspaceDir,
         });
+        break;
+      case "directives":
+        await pluginHost.register(new DirectivesPlugin(), {});
         break;
       default:
         console.warn(`[agent-instance] Unknown tool "${toolName}" for agent "${instance.name}", skipping`);
