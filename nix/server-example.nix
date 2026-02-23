@@ -108,6 +108,12 @@
       tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" ];
       workspaceDir = "/var/lib/clawnix/devops";
       filesystem.readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
+
+      security.toolPolicies = [
+        { tool = "clawnix_flake_update"; effect = "allow"; channels = null; users = null; }
+        { tool = "clawnix_system_rebuild"; effect = "approve"; channels = null; users = null; }
+        { tool = "clawnix_system_rollback"; effect = "allow"; channels = null; users = null; }
+      ];
     };
 
     agents.researcher = {
@@ -142,6 +148,13 @@
       ];
     };
   };
+
+  security.sudo.extraRules = [{
+    groups = [ "clawnix" ];
+    commands = [
+      { command = "/run/current-system/sw/bin/nixos-rebuild"; options = [ "NOPASSWD" ]; }
+    ];
+  }];
 
   # Power management for always-on operation
   powerManagement.enable = true;
