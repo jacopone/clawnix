@@ -18,6 +18,7 @@
           src = ./.;
           npmDepsHash = "sha256-a76JqfEuYk7UkNk2CtM5ORgNJr/hFwmfidI6AMKi1LE=";
           nodejs = pkgs.nodejs_22;
+          meta.license = pkgs.lib.licenses.mit;
           installPhase = ''
             runHook preInstall
             mkdir -p $out/bin $out/lib/clawnix
