@@ -57,14 +57,42 @@ Each agent runs as a separate systemd service (`clawnix-<name>`). Global options
 
 ClawNix runs well on a dedicated laptop operating headless with lid closed. Use Tailscale for remote access and sops-nix for secrets management. See `nix/server-example.nix` for a complete configuration covering power management, firewall, SSH, and always-on operation.
 
+## MCP tool servers
+
+Agents gain capabilities through MCP (Model Context Protocol) tool servers. Each is a standalone Python server communicating via stdio.
+
+| Server | Tools | Description |
+|--------|-------|-------------|
+| mcp-browser | `search_web`, `read_page` | Web search via DuckDuckGo, page content extraction |
+| mcp-documents | `create_presentation`, `create_spreadsheet`, `create_pdf` | PPTX, XLSX, PDF creation |
+| mcp-email | `list_emails`, `read_email`, `draft_reply`, `send_email` | IMAP inbox reading, draft-then-send workflow |
+
+Configure in NixOS:
+
+```nix
+services.clawnix.mcp.servers = {
+  browser.command = "${self.packages.${pkgs.system}.mcp-browser}/bin/clawnix-mcp-browser";
+  documents = {
+    command = "${self.packages.${pkgs.system}.mcp-documents}/bin/clawnix-mcp-documents";
+    env.CLAWNIX_DOCUMENTS_DIR = "/var/lib/clawnix/documents";
+  };
+  email = {
+    command = "${self.packages.${pkgs.system}.mcp-email}/bin/clawnix-mcp-email";
+    env.CLAWNIX_EMAIL_USER_FILE = config.sops.secrets."clawnix/email-user".path;
+    env.CLAWNIX_EMAIL_PASS_FILE = config.sops.secrets."clawnix/email-pass".path;
+  };
+};
+```
+
 ## Project structure
 
 - `src/core/` -- Agent runtime, event bus, state store, plugin host, MCP client, router
 - `src/ai/` -- Claude API integration
 - `src/channels/` -- Terminal, Telegram, and web UI frontends
 - `src/tools/` -- Plugin modules (NixOS, scheduler, observe, dev, heartbeat)
-- `nix/` -- NixOS module and server example config
-- `flake.nix` -- Nix package and dev shell
+- `mcp-servers/` -- Python MCP tool servers (browser, documents, email)
+- `nix/` -- NixOS module, server example, and MCP server packaging
+- `flake.nix` -- Nix packages and dev shell
 
 ## Tech stack
 
@@ -75,4 +103,5 @@ ClawNix runs well on a dedicated laptop operating headless with lid closed. Use 
 - Fastify (web UI server)
 - better-sqlite3 (state persistence)
 - Zod (schema validation)
+- FastMCP (Python MCP tool servers)
 - Nix flake + NixOS module
