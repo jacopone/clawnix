@@ -31,11 +31,9 @@
             runHook postInstall
           '';
         };
-        mcp-browser = import ./nix/mcp-browser.nix { inherit pkgs; };
-        mcp-documents = import ./nix/mcp-documents.nix { inherit pkgs; };
-        mcp-email = import ./nix/mcp-email.nix { inherit pkgs; };
-        mcp-calendar = import ./nix/mcp-calendar.nix { inherit pkgs; };
-        mcp-playwright = import ./nix/mcp-playwright.nix { inherit pkgs; };
+        # All MCP servers removed — replaced by native plugins:
+        # exec (pandoc/libreoffice) | google (gogcli) | browser (BrowserClaw)
+        gogcli = import ./nix/gogcli.nix { inherit pkgs; };
       };
 
       nixosModules.default = import ./nix/module.nix { inherit self; };

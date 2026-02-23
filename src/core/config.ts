@@ -26,6 +26,15 @@ export interface AgentInstanceConfig {
     allowedPackages?: string[];
     defaultTimeout?: number;
   };
+  google?: {
+    gogcliBin?: string;
+    account?: string;
+    defaultTimeout?: number;
+  };
+  browser?: {
+    headless?: boolean;
+    executablePath?: string;
+  };
 }
 
 export interface ClawNixConfig {

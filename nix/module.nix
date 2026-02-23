@@ -104,6 +104,19 @@ let
         writePaths = agentCfg.filesystem.writePaths;
         blockedPatterns = agentCfg.filesystem.blockedPatterns;
       };
+      exec = {
+        allowedPackages = agentCfg.exec.allowedPackages;
+        defaultTimeout = agentCfg.exec.defaultTimeout;
+      };
+      google = {
+        gogcliBin = "${self.packages.${pkgs.system}.gogcli}/bin/gog";
+        defaultTimeout = agentCfg.google.defaultTimeout;
+      } // lib.optionalAttrs (agentCfg.google.account != null) {
+        account = agentCfg.google.account;
+      };
+      browser = {
+        headless = agentCfg.browser.headless;
+      };
     };
     stateDir = cfg.stateDir;
     router.model = cfg.router.model;
@@ -236,6 +249,40 @@ let
           type = lib.types.listOf lib.types.str;
           default = [ ".ssh" ".gnupg" "*.key" "*.pem" ];
           description = "File patterns the agent cannot access";
+        };
+      };
+
+      exec = {
+        allowedPackages = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Nixpkgs packages the agent can use via clawnix_exec without approval";
+        };
+        defaultTimeout = lib.mkOption {
+          type = lib.types.int;
+          default = 30;
+          description = "Default timeout in seconds for exec commands (max 300)";
+        };
+      };
+
+      google = {
+        account = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Google account email for gogcli API commands";
+        };
+        defaultTimeout = lib.mkOption {
+          type = lib.types.int;
+          default = 30;
+          description = "Default timeout in seconds for Google API commands";
+        };
+      };
+
+      browser = {
+        headless = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Run browser in headless mode";
         };
       };
     };

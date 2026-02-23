@@ -14,6 +14,8 @@ import { DirectivesPlugin } from "../tools/directives/index.js";
 import { DelegationPlugin } from "../tools/delegation/index.js";
 import { WatchdogPlugin } from "../tools/watchdog/index.js";
 import { ExecPlugin } from "../tools/exec/index.js";
+import { GooglePlugin } from "../tools/google/index.js";
+import { BrowserPlugin } from "../tools/browser/index.js";
 import { mkdirSync } from "node:fs";
 import type { AgentInstanceConfig } from "./config.js";
 import type { AgentBroker } from "./agent-broker.js";
@@ -116,6 +118,12 @@ export async function wireAgentInstance(
         break;
       case "exec":
         await pluginHost.register(new ExecPlugin(), agentConfig.exec ?? {});
+        break;
+      case "google":
+        await pluginHost.register(new GooglePlugin(), agentConfig.google ?? {});
+        break;
+      case "browser":
+        await pluginHost.register(new BrowserPlugin(), agentConfig.browser ?? {});
         break;
       default:
         console.warn(`[agent-instance] Unknown tool "${toolName}" for agent "${instance.name}", skipping`);

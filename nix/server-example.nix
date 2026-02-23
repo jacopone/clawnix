@@ -22,38 +22,11 @@
     tailscaleInterface = "tailscale0";
     # secretsGroup = "keys";  # uncomment when using sops-nix
 
-    # MCP tool servers shared across all agents
-    mcp.servers = {
-      browser = {
-        command = "${self.packages.${pkgs.system}.mcp-browser}/bin/clawnix-mcp-browser";
-      };
-      documents = {
-        command = "${self.packages.${pkgs.system}.mcp-documents}/bin/clawnix-mcp-documents";
-        env.CLAWNIX_DOCUMENTS_DIR = "/var/lib/clawnix/documents";
-      };
-      email = {
-        command = "${self.packages.${pkgs.system}.mcp-email}/bin/clawnix-mcp-email";
-        env = {
-          CLAWNIX_EMAIL_IMAP_HOST = "imap.gmail.com";
-          CLAWNIX_EMAIL_SMTP_HOST = "smtp.gmail.com";
-          # CLAWNIX_EMAIL_USER_FILE = config.sops.secrets."clawnix/email-user".path;
-          # CLAWNIX_EMAIL_PASS_FILE = config.sops.secrets."clawnix/email-pass".path;
-          CLAWNIX_EMAIL_USER_FILE = "/run/secrets/email-user";
-          CLAWNIX_EMAIL_PASS_FILE = "/run/secrets/email-pass";
-        };
-      };
-      calendar = {
-        command = "${self.packages.${pkgs.system}.mcp-calendar}/bin/clawnix-mcp-calendar";
-        env = {
-          # CLAWNIX_GOOGLE_CREDENTIALS_FILE = config.sops.secrets."clawnix/google-creds".path;
-          CLAWNIX_GOOGLE_CREDENTIALS_FILE = "/run/secrets/google-credentials.json";
-          CLAWNIX_GOOGLE_TOKEN_FILE = "/var/lib/clawnix/google-token.json";
-        };
-      };
-      playwright = {
-        command = "${self.packages.${pkgs.system}.mcp-playwright}/bin/clawnix-mcp-playwright";
-      };
-    };
+    # All MCP servers removed — replaced by native plugins:
+    # - documents → exec + pandoc/libreoffice
+    # - email + calendar → google plugin (gogcli)
+    # - browser + playwright → browser plugin (BrowserClaw)
+    mcp.servers = {};
 
     agents.personal = {
       description = "calendar, reminders, daily tasks, general questions";
@@ -68,8 +41,17 @@
         botTokenFile = "/run/secrets/telegram-bot-token";
       };
       channels.webui.enable = true;
-      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" ];
+      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" "exec" "google" "browser" ];
       workspaceDir = "/var/lib/clawnix/personal";
+
+      exec = {
+        # Web search: agent uses ddgr (DuckDuckGo CLI) via exec
+        # Documents: pandoc + libreoffice for PDF/PPTX/XLSX creation
+        allowedPackages = [ "pandoc" "libreoffice" "ddgr" ];
+        defaultTimeout = 60;
+      };
+
+      # google.account = "me@gmail.com";  # set to your Google account
 
       filesystem = {
         readPaths = [ "/tmp" "/var/log" "/etc/nixos" ];
@@ -78,22 +60,25 @@
       };
 
       security.toolPolicies = [
-        # Browser: auto (read-only)
-        { tool = "search_web"; effect = "allow"; }
-        { tool = "read_page"; effect = "allow"; }
-        # Documents: auto (creates files locally)
-        { tool = "create_presentation"; effect = "allow"; }
-        { tool = "create_spreadsheet"; effect = "allow"; }
-        { tool = "create_pdf"; effect = "allow"; }
-        # Email: tiered (read=auto, draft=auto, send=approve)
-        { tool = "list_emails"; effect = "allow"; }
-        { tool = "read_email"; effect = "allow"; }
-        { tool = "draft_reply"; effect = "allow"; }
-        { tool = "send_email"; effect = "approve"; }
-        # Calendar: list=auto, create=approve
-        { tool = "list_events"; effect = "allow"; }
-        { tool = "find_free_time"; effect = "allow"; }
-        { tool = "create_event"; effect = "approve"; }
+        # Exec: auto for allowlisted packages
+        { tool = "clawnix_exec"; effect = "allow"; }
+        # Browser: read-only auto, form interaction requires approval
+        { tool = "clawnix_browser_open"; effect = "allow"; }
+        { tool = "clawnix_browser_snapshot"; effect = "allow"; }
+        { tool = "clawnix_browser_screenshot"; effect = "allow"; }
+        { tool = "clawnix_browser_click"; effect = "approve"; }
+        { tool = "clawnix_browser_type"; effect = "approve"; }
+        { tool = "clawnix_browser_fill"; effect = "approve"; }
+        { tool = "clawnix_browser_evaluate"; effect = "approve"; }
+        # Google: read=auto, send/create=approve
+        { tool = "clawnix_gmail_search"; effect = "allow"; }
+        { tool = "clawnix_gmail_read"; effect = "allow"; }
+        { tool = "clawnix_gmail_draft"; effect = "allow"; }
+        { tool = "clawnix_gmail_send"; effect = "approve"; }
+        { tool = "clawnix_calendar_list"; effect = "allow"; }
+        { tool = "clawnix_calendar_freebusy"; effect = "allow"; }
+        { tool = "clawnix_calendar_create"; effect = "approve"; }
+        { tool = "clawnix_drive_search"; effect = "allow"; }
       ];
     };
 
@@ -126,15 +111,23 @@
         apiKeyFile = "/run/secrets/anthropic-api-key";
       };
       channels.telegram.enable = true;
-      tools = [ "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" ];
+      tools = [ "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" "browser" "exec" ];
       workspaceDir = "/var/lib/clawnix/researcher";
 
+      exec = {
+        allowedPackages = [ "ddgr" ];
+        defaultTimeout = 30;
+      };
+
       security.toolPolicies = [
-        { tool = "navigate"; effect = "allow"; channels = null; users = null; }
-        { tool = "extract_data"; effect = "allow"; channels = null; users = null; }
-        { tool = "screenshot"; effect = "allow"; channels = null; users = null; }
-        { tool = "click"; effect = "approve"; channels = null; users = null; }
-        { tool = "fill_form"; effect = "approve"; channels = null; users = null; }
+        { tool = "clawnix_exec"; effect = "allow"; }
+        { tool = "clawnix_browser_open"; effect = "allow"; }
+        { tool = "clawnix_browser_snapshot"; effect = "allow"; }
+        { tool = "clawnix_browser_screenshot"; effect = "allow"; }
+        { tool = "clawnix_browser_click"; effect = "approve"; }
+        { tool = "clawnix_browser_type"; effect = "approve"; }
+        { tool = "clawnix_browser_fill"; effect = "approve"; }
+        { tool = "clawnix_browser_evaluate"; effect = "approve"; }
       ];
     };
 
@@ -145,17 +138,20 @@
         apiKeyFile = "/run/secrets/anthropic-api-key";
       };
       channels.telegram.enable = true;
-      tools = [ "scheduler" "memory" "directives" "watchdog" "delegation" ];
+      tools = [ "scheduler" "memory" "directives" "watchdog" "delegation" "exec" "google" ];
       workspaceDir = "/var/lib/clawnix/support";
 
+      exec = {
+        allowedPackages = [ "pandoc" "libreoffice" ];
+        defaultTimeout = 60;
+      };
+
       security.toolPolicies = [
-        { tool = "list_emails"; effect = "allow"; }
-        { tool = "read_email"; effect = "allow"; }
-        { tool = "draft_reply"; effect = "allow"; }
-        { tool = "send_email"; effect = "approve"; }
-        { tool = "create_presentation"; effect = "allow"; }
-        { tool = "create_spreadsheet"; effect = "allow"; }
-        { tool = "create_pdf"; effect = "allow"; }
+        { tool = "clawnix_exec"; effect = "allow"; }
+        { tool = "clawnix_gmail_search"; effect = "allow"; }
+        { tool = "clawnix_gmail_read"; effect = "allow"; }
+        { tool = "clawnix_gmail_draft"; effect = "allow"; }
+        { tool = "clawnix_gmail_send"; effect = "approve"; }
       ];
     };
   };
