@@ -70,6 +70,10 @@ export class PluginHost {
     });
   }
 
+  evaluateToolPolicy(toolName: string, channel: string, sender: string): "allow" | "deny" | "approve" {
+    return evaluatePolicy(this.policies, toolName, channel, sender);
+  }
+
   registerExternalTool(tool: Tool): void {
     this.tools.push(tool);
   }

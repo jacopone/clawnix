@@ -20,6 +20,9 @@ export interface AgentResponse {
   toolResults: Array<{ tool: string; input: unknown; output: string }>;
 }
 
+/** Called before tool execution. Returns "allow" to proceed or "deny" to block. */
+export type ApprovalGate = (toolName: string, input: unknown) => Promise<"allow" | "deny">;
+
 export class ClaudeClient {
   private client: Anthropic;
   private model: string;
@@ -33,6 +36,7 @@ export class ClaudeClient {
     messages: Anthropic.MessageParam[],
     tools: Tool[],
     systemPrompt: string,
+    approvalGate?: ApprovalGate,
   ): Promise<AgentResponse> {
     const apiTools = formatToolsForAPI(tools);
     const toolResults: AgentResponse["toolResults"] = [];
@@ -65,6 +69,20 @@ export class ClaudeClient {
         const tool = tools.find((t) => t.name === toolUse.name);
         let output: string;
         if (tool) {
+          // Check approval gate before execution
+          if (approvalGate) {
+            const decision = await approvalGate(toolUse.name, toolUse.input);
+            if (decision === "deny") {
+              output = "Tool execution was denied by policy or user.";
+              toolResults.push({ tool: toolUse.name, input: toolUse.input, output });
+              toolResultContents.push({
+                type: "tool_result",
+                tool_use_id: toolUse.id,
+                content: output,
+              });
+              continue;
+            }
+          }
           try {
             output = await tool.run(toolUse.input);
           } catch (err) {

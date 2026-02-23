@@ -22,6 +22,10 @@ export interface AgentInstanceConfig {
     writePaths?: string[];
     blockedPatterns?: string[];
   };
+  exec?: {
+    allowedPackages?: string[];
+    defaultTimeout?: number;
+  };
 }
 
 export interface ClawNixConfig {
