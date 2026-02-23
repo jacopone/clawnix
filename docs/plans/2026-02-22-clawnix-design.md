@@ -33,10 +33,12 @@ NixOS Server Laptop (old laptop, lid closed, 24/7)
 │   ├── Fallback: /prefix override (/p, /d, /r, /s)
 │   └── Ambiguous messages: Telegram asks with inline buttons
 │
-├── MCP Tool Servers (shared, each a systemd service)
+├── MCP Tool Servers (shared, each a standalone Nix package)
+│   ├── mcp-browser    (web search, page reading via DuckDuckGo + BeautifulSoup)
 │   ├── mcp-documents  (PPTX, XLSX, PDF via python-pptx, openpyxl, reportlab)
-│   ├── mcp-email      (IMAP/SMTP read/draft/send)
-│   ├── mcp-browser    (web search, page reading, RSS)
+│   ├── mcp-email      (IMAP/SMTP read/draft/send with draft-then-send)
+│   ├── mcp-calendar   (Google Calendar / CalDAV — planned)
+│   ├── mcp-playwright (headless browser automation — planned)
 │   └── nixos tools    (generation diff, option queries — built-in plugin)
 │
 ├── Communication Layer
@@ -60,7 +62,7 @@ services.clawnix.agents = {
     channels.telegram.enable = true;
     channels.webui.enable = true;
     tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" ];
-    mcp.servers = [ "documents" "email" "browser" ];
+    mcp.servers = [ "documents" "email" "browser" "calendar" ];
     personality.workspaceDir = "/var/lib/clawnix/personal";
   };
   devops = {
@@ -122,10 +124,24 @@ Each MCP server is a standalone Nix derivation running as its own systemd servic
 - Credentials isolated: only this service accesses IMAP passwords via sops-nix
 
 ### mcp-browser
-- Web search, page reading, RSS feed monitoring
-- Tech: TypeScript + Playwright or readability
-- Tools: `web_search`, `read_page`, `monitor_rss`
-- Sandboxed: own user, no access to agent state or email credentials
+- Web search and page content extraction
+- Tech: Python + FastMCP, DuckDuckGo (ddgs), httpx, BeautifulSoup
+- Tools: `search_web`, `read_page`
+- URL scheme validation (http/https only), 10k char truncation, non-content stripping
+
+### mcp-calendar (planned — Phase 5)
+- Calendar management and scheduling
+- Tech: Python + FastMCP, Google Calendar API or CalDAV
+- Tools: `list_events`, `create_event`, `find_free_time`, `reschedule_event`
+- Credentials via sops-nix (OAuth tokens or app passwords)
+- Policy: list/find = auto, create/reschedule = notify
+
+### mcp-playwright (planned — Phase 6)
+- Headless browser automation for authenticated sites and form filling
+- Tech: Python + FastMCP, Playwright
+- Tools: `navigate`, `click`, `fill_form`, `screenshot`, `extract_data`
+- Isolated browser profile per session, no persistent cookies by default
+- Policy: navigate/screenshot/extract = auto, click/fill_form = approve
 
 ### Configuration
 
@@ -264,7 +280,7 @@ ClawNix takes the best security patterns from these and builds them into the cor
 
 ## Phased Rollout
 
-### Phase 3: Server Foundation
+### Phase 3: Server Foundation ✅
 - Rename nixclaw → clawnix across codebase
 - Evolve module.nix to support `services.clawnix.agents.<name>`
 - Add natural language router (Haiku classification)
@@ -273,24 +289,65 @@ ClawNix takes the best security patterns from these and builds them into the cor
 - Ship with one agent (personal) with all existing tools
 - Minimal NixOS config for server laptop (headless, lid-closed)
 
-### Phase 4: MCP Tool Servers
-- mcp-browser (web search, page reading — highest value)
-- mcp-documents (PPTX, XLSX, PDF)
-- mcp-email (IMAP/SMTP with three-tier autonomy)
-- Each Nix-packaged with systemd service and Unix socket
+### Phase 4: MCP Tool Servers ✅
+- mcp-browser (web search, page reading via DuckDuckGo + BeautifulSoup)
+- mcp-documents (PPTX, XLSX, PDF via python-pptx, openpyxl, reportlab)
+- mcp-email (IMAP/SMTP with draft-then-send workflow)
+- Each Nix-packaged with `writeShellScriptBin` + `python3.withPackages`
+- NixOS module and server example updated with tool policies
 
-### Phase 5: Multi-Agent Split
+### Phase 5: Multi-Agent Split + Calendar
 - Split personal into 2-4 specialized agents
 - Per-agent filesystem memory (GLOBAL.md + per-agent CLAUDE.md)
 - Per-agent mount allowlists
 - Router classifies across multiple agents
+- mcp-calendar (Google Calendar / CalDAV integration)
+- Event-driven triggers: extend scheduler with watch conditions (email arrival, file change, webhook). Enables proactive behavior — the gap between a chatbot and a digital employee.
+- Standing directives: persistent instructions that trigger on conditions ("when X happens, do Y"), stored in agent memory and evaluated by the trigger system
 
 ### Phase 6: Polish and Harden
-- Agent-to-agent communication
+- Agent-to-agent communication (delegation, handoff between specialists)
 - Telegram inline buttons for approvals
 - Scheduled heartbeat reports (morning briefings)
 - NixOS auto-update pipeline (flake lock + rebuild + rollback on failure)
 - systemd watchdog + journal alerts for agent crashes
+- mcp-playwright (headless browser automation for authenticated sites)
+
+### Phase 7: Digital Employee
+- Additional communication channels (Slack, WhatsApp, Discord)
+- CRM / project management integrations (mcp-jira, mcp-linear)
+- File sharing via Telegram (send created documents directly in chat)
+- Conversation handoff (agent escalates to human with full context)
+- Standing directive dashboard in Web UI (view/edit/disable triggers)
+- Audit log viewer (what the agent did, when, why, approval chain)
+
+## Digital Employee Evolution
+
+ClawNix is designed to evolve from a personal assistant into a digital employee — an autonomous agent that doesn't just respond but proactively acts on your behalf.
+
+The key architectural insight: most "digital employee" capabilities are **just MCP servers**. The core runtime (event bus, plugin host, state, router, approval) stays stable while capabilities grow through new MCP packages:
+
+```
+Capability          → Implementation           → Core change needed?
+─────────────────────────────────────────────────────────────────────
+Web research        → mcp-browser              → No (done)
+Document creation   → mcp-documents            → No (done)
+Email management    → mcp-email                → No (done)
+Calendar            → mcp-calendar             → No
+Browser automation  → mcp-playwright           → No
+CRM integration     → mcp-jira                 → No
+Slack/WhatsApp      → new channel plugin       → No (plugin interface exists)
+Proactive triggers  → scheduler enhancement    → Small (event bus extension)
+Agent delegation    → inter-agent messaging    → Small (new event type)
+```
+
+Three things separate a chatbot from a digital employee:
+
+1. **Proactive behavior.** The agent watches for conditions and acts without being asked. Requires event-driven triggers (Phase 5).
+2. **Persistent memory and directives.** Standing instructions that survive across sessions. Requires CLAUDE.md hierarchy + directive storage (Phase 5).
+3. **Multi-agent delegation.** One agent identifies a task outside its scope and hands it to a specialist. Requires inter-agent communication (Phase 6).
+
+Each of these builds on the existing architecture without breaking it.
 
 ## Design Principles
 
