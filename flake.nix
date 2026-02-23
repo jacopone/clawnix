@@ -34,6 +34,7 @@
         mcp-browser = import ./nix/mcp-browser.nix { inherit pkgs; };
         mcp-documents = import ./nix/mcp-documents.nix { inherit pkgs; };
         mcp-email = import ./nix/mcp-email.nix { inherit pkgs; };
+        mcp-calendar = import ./nix/mcp-calendar.nix { inherit pkgs; };
       };
 
       nixosModules.default = import ./nix/module.nix { inherit self; };
