@@ -6,6 +6,9 @@ import {
   serviceStatus,
   listServices,
   nixosOption,
+  flakeUpdate,
+  systemRebuild,
+  systemRollback,
 } from "./commands.js";
 import { listGenerations, diffGenerations } from "./generations.js";
 
@@ -95,7 +98,31 @@ export class NixOSToolsPlugin implements ClawNixPlugin {
       },
     });
 
-    ctx.logger.info(`NixOS tools registered: 7 tools (flakePath: ${flakePath})`);
+    ctx.registerTool({
+      name: "clawnix_flake_update",
+      description: "Update flake.lock to pull the latest nixpkgs and other inputs. Does not rebuild the system.",
+      inputSchema: z.object({}),
+      run: async () => flakeUpdate(flakePath),
+    });
+
+    ctx.registerTool({
+      name: "clawnix_system_rebuild",
+      description:
+        "Rebuild and switch to the new NixOS configuration. Requires sudo NOPASSWD for nixos-rebuild. " +
+        "Run clawnix_flake_update first to get new packages, then this to apply.",
+      inputSchema: z.object({}),
+      run: async () => systemRebuild(flakePath),
+    });
+
+    ctx.registerTool({
+      name: "clawnix_system_rollback",
+      description:
+        "Roll back to the previous NixOS generation. Use if a rebuild causes problems.",
+      inputSchema: z.object({}),
+      run: async () => systemRollback(),
+    });
+
+    ctx.logger.info(`NixOS tools registered: 10 tools (flakePath: ${flakePath})`);
   }
 
   async shutdown(): Promise<void> {}

@@ -3,9 +3,9 @@ import { promisify } from "node:util";
 
 const exec = promisify(execFile);
 
-export async function runCommand(cmd: string, args: string[]): Promise<string> {
+export async function runCommand(cmd: string, args: string[], timeout = 30000): Promise<string> {
   try {
-    const { stdout, stderr } = await exec(cmd, args, { timeout: 30000 });
+    const { stdout, stderr } = await exec(cmd, args, { timeout });
     return stdout + (stderr ? `\nSTDERR: ${stderr}` : "");
   } catch (err: unknown) {
     const e = err as { stdout?: string; stderr?: string; message: string };
@@ -42,4 +42,16 @@ export async function listServices(): Promise<string> {
 
 export async function nixosOption(optionPath: string): Promise<string> {
   return runCommand("nixos-option", [optionPath]);
+}
+
+export async function flakeUpdate(flakePath: string): Promise<string> {
+  return runCommand("nix", ["flake", "update", "--flake", flakePath], 120_000);
+}
+
+export async function systemRebuild(flakePath: string): Promise<string> {
+  return runCommand("sudo", ["nixos-rebuild", "switch", "--flake", flakePath], 300_000);
+}
+
+export async function systemRollback(): Promise<string> {
+  return runCommand("sudo", ["nixos-rebuild", "switch", "--rollback"], 300_000);
 }
