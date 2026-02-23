@@ -1,0 +1,18 @@
+[project]
+name = "clawnix-mcp-email"
+version = "0.1.0"
+description = "ClawNix MCP server for email (IMAP/SMTP)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+clawnix-mcp-email = "server:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
