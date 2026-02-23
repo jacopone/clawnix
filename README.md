@@ -45,7 +45,7 @@ services.clawnix = {
       botTokenFile = config.sops.secrets."clawnix/telegram-bot-token".path;
     };
     channels.webui.enable = true;
-    tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" ];
+    tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" ];
     workspaceDir = "/var/lib/clawnix/personal";
   };
 };
@@ -55,7 +55,7 @@ Each agent runs as a separate systemd service (`clawnix-<name>`). Global options
 
 ## Server deployment
 
-ClawNix runs well on a dedicated laptop operating headless with lid closed. Use Tailscale for remote access and sops-nix for secrets management. See `nix/server-example.nix` for a complete configuration covering power management, firewall, SSH, and always-on operation.
+ClawNix runs well on a dedicated laptop operating headless with lid closed. Use Tailscale for remote access and sops-nix for secrets management. See `nix/server-example.nix` for a complete 4-agent configuration covering power management, firewall, SSH, and always-on operation.
 
 ## MCP tool servers
 
@@ -66,6 +66,7 @@ Agents gain capabilities through MCP (Model Context Protocol) tool servers. Each
 | mcp-browser | `search_web`, `read_page` | Web search via DuckDuckGo, page content extraction |
 | mcp-documents | `create_presentation`, `create_spreadsheet`, `create_pdf` | PPTX, XLSX, PDF creation |
 | mcp-email | `list_emails`, `read_email`, `draft_reply`, `send_email` | IMAP inbox reading, draft-then-send workflow |
+| mcp-calendar | `list_events`, `create_event`, `find_free_time` | Google Calendar integration via OAuth2 |
 
 Configure in NixOS:
 
@@ -81,16 +82,55 @@ services.clawnix.mcp.servers = {
     env.CLAWNIX_EMAIL_USER_FILE = config.sops.secrets."clawnix/email-user".path;
     env.CLAWNIX_EMAIL_PASS_FILE = config.sops.secrets."clawnix/email-pass".path;
   };
+  calendar = {
+    command = "${self.packages.${pkgs.system}.mcp-calendar}/bin/clawnix-mcp-calendar";
+    env.CLAWNIX_GOOGLE_CREDENTIALS_FILE = config.sops.secrets."clawnix/google-creds".path;
+    env.CLAWNIX_GOOGLE_TOKEN_FILE = "/var/lib/clawnix/google-token.json";
+  };
 };
 ```
+
+## Per-agent memory
+
+Each agent has persistent memory via `memory/MEMORY.md` in its workspace directory. Agents can read and write their own memory using `clawnix_memory_read` and `clawnix_memory_write` tools. A shared `GLOBAL.md` in the state directory is read by all agents.
+
+## Standing directives
+
+Agents support standing directives — persistent "when X happens, do Y" instructions:
+
+- `cron:EXPRESSION` — triggers on cron schedule (e.g. `cron:0 9 * * *` for daily at 9am)
+- `interval:MINUTES` — triggers every N minutes
+
+Directives persist across restarts and are managed with `clawnix_directive_create`, `clawnix_directive_list`, and `clawnix_directive_remove` tools.
+
+## Multi-agent setup
+
+Split responsibilities across specialized agents. Each agent has its own tools, MCP servers, memory, and tool policies. The natural language router dispatches Telegram messages to the correct agent.
+
+See `examples/workspaces/` for personality file templates and `nix/server-example.nix` for a 4-agent configuration (personal, devops, researcher, support).
+
+## Filesystem access control
+
+Per-agent filesystem policies restrict what each agent can read and write:
+
+```nix
+agents.devops.filesystem = {
+  readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
+  writePaths = [ ];
+  blockedPatterns = [ ".ssh" ".gnupg" "*.key" "*.pem" ];
+};
+```
+
+Read paths are passed to the observe plugin. Write paths are added to systemd `ReadWritePaths`. Blocked patterns prevent access to sensitive files.
 
 ## Project structure
 
 - `src/core/` -- Agent runtime, event bus, state store, plugin host, MCP client, router
 - `src/ai/` -- Claude API integration
 - `src/channels/` -- Terminal, Telegram, and web UI frontends
-- `src/tools/` -- Plugin modules (NixOS, scheduler, observe, dev, heartbeat)
-- `mcp-servers/` -- Python MCP tool servers (browser, documents, email)
+- `src/tools/` -- Plugin modules (NixOS, scheduler, observe, dev, heartbeat, memory, directives)
+- `mcp-servers/` -- Python MCP tool servers (browser, documents, email, calendar)
+- `examples/` -- Workspace personality files for each agent
 - `nix/` -- NixOS module, server example, and MCP server packaging
 - `flake.nix` -- Nix packages and dev shell
 
@@ -103,5 +143,7 @@ services.clawnix.mcp.servers = {
 - Fastify (web UI server)
 - better-sqlite3 (state persistence)
 - Zod (schema validation)
+- cron (scheduler and directives)
 - FastMCP (Python MCP tool servers)
+- Google Calendar API (calendar integration)
 - Nix flake + NixOS module
