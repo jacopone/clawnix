@@ -50,6 +50,9 @@
           CLAWNIX_GOOGLE_TOKEN_FILE = "/var/lib/clawnix/google-token.json";
         };
       };
+      playwright = {
+        command = "${self.packages.${pkgs.system}.mcp-playwright}/bin/clawnix-mcp-playwright";
+      };
     };
 
     agents.personal = {
@@ -65,7 +68,7 @@
         botTokenFile = "/run/secrets/telegram-bot-token";
       };
       channels.webui.enable = true;
-      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" "watchdog" ];
+      tools = [ "nixos" "observe" "dev" "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" ];
       workspaceDir = "/var/lib/clawnix/personal";
 
       filesystem = {
@@ -105,7 +108,7 @@
         enable = true;
         port = 3334;
       };
-      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" "watchdog" ];
+      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" ];
       workspaceDir = "/var/lib/clawnix/devops";
       filesystem.readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
 
@@ -123,8 +126,16 @@
         apiKeyFile = "/run/secrets/anthropic-api-key";
       };
       channels.telegram.enable = true;
-      tools = [ "scheduler" "heartbeat" "memory" "directives" "watchdog" ];
+      tools = [ "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" ];
       workspaceDir = "/var/lib/clawnix/researcher";
+
+      security.toolPolicies = [
+        { tool = "navigate"; effect = "allow"; channels = null; users = null; }
+        { tool = "extract_data"; effect = "allow"; channels = null; users = null; }
+        { tool = "screenshot"; effect = "allow"; channels = null; users = null; }
+        { tool = "click"; effect = "approve"; channels = null; users = null; }
+        { tool = "fill_form"; effect = "approve"; channels = null; users = null; }
+      ];
     };
 
     agents.support = {
@@ -134,7 +145,7 @@
         apiKeyFile = "/run/secrets/anthropic-api-key";
       };
       channels.telegram.enable = true;
-      tools = [ "scheduler" "memory" "directives" "watchdog" ];
+      tools = [ "scheduler" "memory" "directives" "watchdog" "delegation" ];
       workspaceDir = "/var/lib/clawnix/support";
 
       security.toolPolicies = [
