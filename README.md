@@ -67,6 +67,7 @@ Agents gain capabilities through MCP (Model Context Protocol) tool servers. Each
 | mcp-documents | `create_presentation`, `create_spreadsheet`, `create_pdf` | PPTX, XLSX, PDF creation |
 | mcp-email | `list_emails`, `read_email`, `draft_reply`, `send_email` | IMAP inbox reading, draft-then-send workflow |
 | mcp-calendar | `list_events`, `create_event`, `find_free_time` | Google Calendar integration via OAuth2 |
+| mcp-playwright | `navigate`, `click`, `fill_form`, `screenshot`, `extract_data` | Headless Chromium browser automation via Playwright |
 
 Configure in NixOS:
 
@@ -103,6 +104,27 @@ Agents support standing directives — persistent "when X happens, do Y" instruc
 
 Directives persist across restarts and are managed with `clawnix_directive_create`, `clawnix_directive_list`, and `clawnix_directive_remove` tools.
 
+## Agent-to-agent delegation
+
+Agents delegate tasks to other specialists using `clawnix_delegate` and `clawnix_list_agents` tools. The AgentBroker routes requests between agents. When an agent receives a delegated task, it appears as a `message:incoming` event on the target agent's EventBus.
+
+## Telegram inline buttons
+
+Approval requests use inline keyboard buttons instead of text commands. Tap "Allow" or "Deny" directly in the Telegram message. The original message updates to show the decision.
+
+## NixOS auto-updates
+
+The devops agent can update the system with three tools:
+- `clawnix_flake_update` — update flake.lock to pull latest nixpkgs
+- `clawnix_system_rebuild` — rebuild and switch to new configuration
+- `clawnix_system_rollback` — revert to previous generation on failure
+
+Requires `security.sudo.extraRules` for NOPASSWD access to `nixos-rebuild`. See `nix/server-example.nix`.
+
+## systemd watchdog
+
+Each agent service pings systemd via `sd_notify(WATCHDOG=1)` every 15 seconds. If an agent hangs, systemd restarts it automatically. The NixOS module sets `WatchdogSec=60` and `Type=notify`. The `clawnix_agent_health` tool queries journal logs for service warnings.
+
 ## Multi-agent setup
 
 Split responsibilities across specialized agents. Each agent has its own tools, MCP servers, memory, and tool policies. The natural language router dispatches Telegram messages to the correct agent.
@@ -129,7 +151,7 @@ Read paths are passed to the observe plugin. Write paths are added to systemd `R
 - `src/ai/` -- Claude API integration
 - `src/channels/` -- Terminal, Telegram, and web UI frontends
 - `src/tools/` -- Plugin modules (NixOS, scheduler, observe, dev, heartbeat, memory, directives)
-- `mcp-servers/` -- Python MCP tool servers (browser, documents, email, calendar)
+- `mcp-servers/` -- Python MCP tool servers (browser, documents, email, calendar, playwright)
 - `examples/` -- Workspace personality files for each agent
 - `nix/` -- NixOS module, server example, and MCP server packaging
 - `flake.nix` -- Nix packages and dev shell
@@ -146,4 +168,5 @@ Read paths are passed to the observe plugin. Write paths are added to systemd `R
 - cron (scheduler and directives)
 - FastMCP (Python MCP tool servers)
 - Google Calendar API (calendar integration)
+- Playwright (headless browser automation)
 - Nix flake + NixOS module
