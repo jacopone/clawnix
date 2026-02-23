@@ -117,6 +117,10 @@ let
       browser = {
         headless = agentCfg.browser.headless;
       };
+      evolve = {
+        configFile = agentCfg.evolve.configFile;
+        flakePath = agentCfg.evolve.flakePath;
+      };
     };
     stateDir = cfg.stateDir;
     router.model = cfg.router.model;
@@ -283,6 +287,19 @@ let
           type = lib.types.bool;
           default = true;
           description = "Run browser in headless mode";
+        };
+      };
+
+      evolve = {
+        configFile = lib.mkOption {
+          type = lib.types.path;
+          default = "/etc/nixos/clawnix-evolved.nix";
+          description = "Path to the agent-managed NixOS overlay file";
+        };
+        flakePath = lib.mkOption {
+          type = lib.types.str;
+          default = ".";
+          description = "Path to the NixOS flake for validation and rebuild";
         };
       };
     };

@@ -35,6 +35,10 @@ export interface AgentInstanceConfig {
     headless?: boolean;
     executablePath?: string;
   };
+  evolve?: {
+    configFile?: string;
+    flakePath?: string;
+  };
 }
 
 export interface ClawNixConfig {

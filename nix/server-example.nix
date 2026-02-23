@@ -83,7 +83,7 @@
     };
 
     agents.devops = {
-      description = "server health, NixOS, deployments, CI/CD, infrastructure";
+      description = "server health, NixOS, deployments, CI/CD, infrastructure, self-evolve";
       ai = {
         model = "claude-sonnet-4-6";
         apiKeyFile = "/run/secrets/anthropic-api-key";
@@ -93,14 +93,21 @@
         enable = true;
         port = 3334;
       };
-      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" ];
+      tools = [ "nixos" "observe" "scheduler" "heartbeat" "memory" "directives" "watchdog" "delegation" "evolve" ];
       workspaceDir = "/var/lib/clawnix/devops";
       filesystem.readPaths = [ "/tmp" "/var/log" "/etc/nixos" "/nix/var/nix" ];
+
+      evolve = {
+        configFile = "/etc/nixos/clawnix-evolved.nix";
+        flakePath = "/etc/nixos";
+      };
 
       security.toolPolicies = [
         { tool = "clawnix_flake_update"; effect = "allow"; channels = null; users = null; }
         { tool = "clawnix_system_rebuild"; effect = "approve"; channels = null; users = null; }
         { tool = "clawnix_system_rollback"; effect = "allow"; channels = null; users = null; }
+        # Self-evolve: always requires approval (propose writes + rebuilds)
+        { tool = "clawnix_evolve"; effect = "approve"; channels = null; users = null; }
       ];
     };
 
